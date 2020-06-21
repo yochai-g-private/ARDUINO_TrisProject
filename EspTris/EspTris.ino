@@ -26,7 +26,7 @@
 
 using namespace NYG;
 
-static DigitalOutputPin relays(RELAYS_PIN);
+//static DigitalOutputPin relays(RELAYS_PIN);
 //static PullupPushButton button(BUTTON_PIN);
 static AnalogInputPin   analog_button(BUTTON_PIN);
 static Threshold        button(analog_button, 500);
@@ -64,9 +64,9 @@ void setup() {
     
     TRACING = true;
 
-    delay(1000);
+    //delay(1000);
 
-    bool RTC_ok = RTC::Begin(D2, D1);
+    bool RTC_ok = RTC::Begin();
 
     Signal(RTC_ok);
     Serial.println(RTC_ok ? "RTC is OK" : "RTC initialization failed");
@@ -74,11 +74,11 @@ void setup() {
     Settings::Load();
 
     delay(1000);
-    //TestLeds();
+    TestLeds();
 
     //relays.On();
 
-    //TestRelays();
+    TestRelays();
 
     InitializeWebServices();
 

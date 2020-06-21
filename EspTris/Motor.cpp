@@ -36,8 +36,8 @@ static void test(const char* name, IDigitalOutput& out)
 
     for (int cnt = 0; cnt < 5; cnt++)
     {
-        out.On();    delay(1000);
-        out.Off();   delay(1000);
+        out.On();    delay(500);
+        out.Off();   delay(500);
     }
 }
 //------------------------------------------------------
