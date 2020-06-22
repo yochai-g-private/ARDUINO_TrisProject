@@ -1,4 +1,5 @@
 #include "NYG.h"
+#include "SmartHomeWiFiApp.h"
 
 #include <Hash.h>
 #include <ESP8266WiFi.h>
@@ -15,8 +16,7 @@
 
 using namespace NYG;
 
-const char* ssid        = "HomeNet";
-const char* password    = "1357864200";
+DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA);
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -54,19 +54,22 @@ static const String contentType = "text/html";
 
 void InitializeWebServices()
 {
-    // Initialize SPIFFS
-    if (!SPIFFS.begin())
-    {
-        //LOGGER << "An Error has occurred while mounting SPIFFS" << NL;
+    static bool first_time = true;
+
+    if (!first_time)
         return;
-    }
+
+    first_time = true;
+
+    //// Initialize SPIFFS
+    //if (!SPIFFS.begin())
+    //{
+    //    //LOGGER << "An Error has occurred while mounting SPIFFS" << NL;
+    //    return;
+    //}
 
     // Connect to Wi-Fi
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(1000);
-    }
+    wifi_app.ConnectToWiFi();
 
     // Print ESP32 Local IP Address
     //LOGGER << "IP: " << WiFi.localIP().toString() << NL;

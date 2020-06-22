@@ -76,9 +76,7 @@ void setup() {
     delay(1000);
     TestLeds();
 
-    //relays.On();
-
-    TestRelays();
+    //TestRelays();
 
     InitializeWebServices();
 
