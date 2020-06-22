@@ -1,3 +1,59 @@
+
+#include "WebServices.h"
+
+#if 0
+const char* ssid     = "HomeNet";
+const char* password = "1357864200";
+
+#if 1
+
+class String;
+typedef unsigned char __uint8_t;
+typedef __uint8_t uint8_t;
+typedef unsigned int __uint32_t;
+typedef __uint32_t uint32_t;
+
+#include <Hash.h>
+#include <SPI.h>
+
+#include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <FS.h>
+#include <Wire.h>
+
+#include "Logger.h"
+
+AsyncWebServer server(80);
+
+void InitializeWebServices()
+{
+    // Initialize SPIFFS
+    if (!SPIFFS.begin()) {
+        Serial.println("An Error has occurred while mounting SPIFFS");
+        return;
+    }
+
+    // Connect to Wi-Fi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.println("Connecting to WiFi..");
+    }
+
+    // Print ESP32 Local IP Address
+    Serial.println(WiFi.localIP());
+
+    server.onNotFound([](AsyncWebServerRequest *request) {
+        LOGGER << "Not found" << NL;
+        request->send_P(400, "text/plain", "blablabla");
+        });
+
+    // Start server
+    server.begin();
+}
+
+#else
 #include "NYG.h"
 #include "SmartHomeWiFiApp.h"
 
@@ -8,7 +64,6 @@
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 
-#include "WebServices.h"
 #include "Logger.h"
 #include "Html.h"
 #include "Settings.h"
@@ -16,7 +71,14 @@
 
 using namespace NYG;
 
-DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA);
+#define _USE_SMART_HOME_WIFI_APP    0
+
+#if _USE_SMART_HOME_WIFI_APP
+DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_AP);
+#else
+const char* ssid = "HomeNet";
+const char* password = "1357864200";
+#endif //_USE_SMART_HOME_WIFI_APP
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -61,22 +123,29 @@ void InitializeWebServices()
 
     first_time = true;
 
-    //// Initialize SPIFFS
-    //if (!SPIFFS.begin())
-    //{
-    //    //LOGGER << "An Error has occurred while mounting SPIFFS" << NL;
-    //    return;
-    //}
+    // Initialize SPIFFS
+    if (!SPIFFS.begin())
+    {
+        //LOGGER << "An Error has occurred while mounting SPIFFS" << NL;
+        return;
+    }
 
     // Connect to Wi-Fi
+#if _USE_SMART_HOME_WIFI_APP
     wifi_app.ConnectToWiFi();
+#else
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(1000);
+    }
 
-    // Print ESP32 Local IP Address
-    //LOGGER << "IP: " << WiFi.localIP().toString() << NL;
+    LOGGER << "IP: " << WiFi.localIP().toString() << NL;
+#endif //_USE_SMART_HOME_WIFI_APP
 
     // Route for root / web page
 
-    server.on("/settings/timings/up",               HTTP_GET, HTTP_handleSettingsTimingsUp);
+ /*   server.on("/settings/timings/up",               HTTP_GET, HTTP_handleSettingsTimingsUp);
     server.on("/settings/timings/down",             HTTP_GET, HTTP_handleSettingsTimingsDown);
     server.on("/settings/timings",                  HTTP_GET, HTTP_handleSettingsTimings);
     server.on("/settings/states/nightly",           HTTP_GET, HTTP_handleSettingsStatesNightly);
@@ -84,9 +153,12 @@ void InitializeWebServices()
     server.on("/settings/states",                   HTTP_GET, HTTP_handleSettingsStates);
     server.on("/settings",                          HTTP_GET, HTTP_handleSettings);
     server.on("/clock",                             HTTP_GET, HTTP_handleClock);
-    server.on("/restart",                           HTTP_GET, HTTP_handleRestart);
+    server.on("/restart",                           HTTP_GET, HTTP_handleRestart);*/
 
-    server.onNotFound(HTTP_notFound);
+    server.onNotFound([](AsyncWebServerRequest *request) {
+        request->send_P(400, "text/plain", "hahahhahahahhahahah!!!!");
+        });
+//    server.onNotFound(HTTP_notFound);
 
     // Start server
     server.begin();
@@ -151,7 +223,6 @@ Html::Element& create_field(const char* field, const String& value, Html::TextGe
 
 static void HTTP_notFound(AsyncWebServerRequest *request)
 {
-    //LOGGER << __FUNCTION__ << NL;
     request->send(request->beginResponse(400, contentType, "Not found!!!"));
 }
 //------------------------------------------------------
@@ -290,3 +361,6 @@ static void HTTP_handleRestart(AsyncWebServerRequest *request)
 }
 //------------------------------------------------------
 
+
+#endif 
+#endif

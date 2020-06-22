@@ -13,31 +13,26 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{11b2809d-d2a3-456b-9db6-5bcbe9031124}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Tris.ino" />
+    <None Include="AsyncWebServerTest.ino" />
     <None Include="src\arduino folders read me.txt" />
+    <None Include="data\index.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\style.css">
+      <Filter>data</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="__vm\.Tris.vsarduino.h">
+    <ClInclude Include="__vm\.EspTris.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tris.h">
+    <ClInclude Include="__vm\.AsyncWebServerTest.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Configuration.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Motor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Configuration.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Motor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

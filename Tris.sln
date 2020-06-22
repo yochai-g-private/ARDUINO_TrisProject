@@ -5,11 +5,11 @@ VisualStudioVersion = 15.0.28307.1145
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TESTS", "TESTS", "{D39C47C1-3CD0-41E7-8C84-5584D9CA406B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NanoTest", "NanoTest\NanoTest.vcxproj", "{53A7FE9D-C54B-46F0-9474-DAB19C275563}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NYG_Library", "..\..\Libraries\NYG_Library.vcxitems", "{62C10FDB-437D-4FC4-AF28-4BF3DFA5D158}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EspTris", "EspTris\EspTris.vcxproj", "{C5F80730-F44F-4478-BDAE-6634EFC2CA88}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AsyncWebServerTest", "AsyncWebServerTest\AsyncWebServerTest.vcxproj", "{B662C854-2949-4A01-9FA6-2F8C94820925}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,20 +17,20 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{53A7FE9D-C54B-46F0-9474-DAB19C275563}.Debug|x86.ActiveCfg = Debug|Win32
-		{53A7FE9D-C54B-46F0-9474-DAB19C275563}.Debug|x86.Build.0 = Debug|Win32
-		{53A7FE9D-C54B-46F0-9474-DAB19C275563}.Release|x86.ActiveCfg = Release|Win32
-		{53A7FE9D-C54B-46F0-9474-DAB19C275563}.Release|x86.Build.0 = Release|Win32
 		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x86.ActiveCfg = Debug|Win32
 		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x86.Build.0 = Debug|Win32
 		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x86.ActiveCfg = Release|Win32
 		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x86.Build.0 = Release|Win32
+		{B662C854-2949-4A01-9FA6-2F8C94820925}.Debug|x86.ActiveCfg = Debug|Win32
+		{B662C854-2949-4A01-9FA6-2F8C94820925}.Debug|x86.Build.0 = Debug|Win32
+		{B662C854-2949-4A01-9FA6-2F8C94820925}.Release|x86.ActiveCfg = Release|Win32
+		{B662C854-2949-4A01-9FA6-2F8C94820925}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{53A7FE9D-C54B-46F0-9474-DAB19C275563} = {D39C47C1-3CD0-41E7-8C84-5584D9CA406B}
+		{B662C854-2949-4A01-9FA6-2F8C94820925} = {D39C47C1-3CD0-41E7-8C84-5584D9CA406B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EC3A09D9-758B-4BAB-A8A6-81DEA5677510}

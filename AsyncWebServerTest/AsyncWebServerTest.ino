@@ -12,6 +12,9 @@
 */
 
 // Import required libraries
+#include <Hash.h>
+#include <SPI.h>
+
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -91,6 +94,7 @@ void setup(){
   Serial.begin(115200);
   pinMode(ledPin, OUTPUT);
 
+#if 0
   #define FIND_ADDRESS false
   Wire.begin();
   while(FIND_ADDRESS)
@@ -115,6 +119,9 @@ void setup(){
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
   }
+#else
+  bme.begin();
+#endif
 
   // Initialize SPIFFS
   if(!SPIFFS.begin()){
@@ -166,10 +173,15 @@ void setup(){
     request->send_P(200, "text/plain", getPressure().c_str());
   });
 
+  server.onNotFound([](AsyncWebServerRequest *request) {
+      request->send_P(400, "text/plain", "NOT....FOUND");
+      });
+
   // Start server
   server.begin();
 }
  
-void loop(){
-  
+void loop()
+{
+    bool pips = digitalRead(D1);
 }

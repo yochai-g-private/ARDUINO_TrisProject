@@ -3,11 +3,12 @@
 #include <DS3231.h>
 #include <TimeLib.h>
 #include <EEPROM.h>
-#include <Hash.h>
-#include <ESP8266WiFi.h>
-#include <ESPAsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <FS.h>
+//#include <Hash.h>
+//#include <SPI.h>
+//#include <ESP8266WiFi.h>
+//#include <ESPAsyncTCP.h>
+//#include <ESPAsyncWebServer.h>
+//#include <FS.h>
 #include <Ticker.h>
 
 #include "NYG.h"
@@ -48,7 +49,7 @@ struct ResetAllBeforeSetup
     }
 };
 
-static ResetAllBeforeSetup resetor;
+//static ResetAllBeforeSetup resetor;
 
 //------------------------------------------------------
 //	PREDECLARATIONS
@@ -62,7 +63,7 @@ void setup() {
 
     Logger::Initialize();
     
-    TRACING = true;
+    //TRACING = true;
 
     //delay(1000);
 
@@ -89,16 +90,81 @@ void setup() {
 //------------------------------------------------------
 //	LOOP
 //------------------------------------------------------
+
+static void handleWebRequest();
+
 void loop() 
 {
+    handleWebRequest();
+
     bool pressed;
 
     if (button_observer.TestChanged(pressed))
     {
         LOGGER << "Button " << (pressed ? "pressed" : "released") << NL;
     }
+
+    static int x = 0;
+
+    int y = millis() / 10000;
+
+    if (x != y)
+    {
+        x = y;
+        LOGGER << x << NL;
+    }
 }
 
 
 extern const char*	gbl_build_date = __DATE__;
 extern const char*	gbl_build_time = __TIME__;
+
+
+#if 1
+
+static const char* ssid = "HomeNet";
+static const char* password = "1357864200";
+
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h> 
+#include <ESP8266WebServer.h>
+
+static ESP8266WebServer server(80);
+
+static void handleWebRequest()
+{
+    server.handleClient();
+}
+
+static void HTTP_notFound()
+{
+    LOGGER << "HTTP_notFound: " << server.uri() << NL;
+    server.send(400, "text/html", "Not found!!!");
+    delay(1);
+}
+
+void InitializeWebServices()
+{
+    // Initialize SPIFFS
+    if (!SPIFFS.begin()) {
+        Serial.println("An Error has occurred while mounting SPIFFS");
+        return;
+    }
+
+    // Connect to Wi-Fi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.println("Connecting to WiFi..");
+    }
+
+    // Print ESP32 Local IP Address
+    Serial.println(WiFi.localIP());
+
+    server.onNotFound(HTTP_notFound);
+
+    // Start server
+    server.begin();
+}
+
+#endif
