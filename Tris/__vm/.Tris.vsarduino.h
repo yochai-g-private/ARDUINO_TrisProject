@@ -16,9 +16,8 @@
 #define __ESP8266_esp8266__
 #define __ESP8266_ESP8266__
 #define _VMDEBUG 1
-#define _USE_RTC 1
-#define _USE_TIME_EX 1
 #define _USE_LOGGER 1
+#define _USE_TIME_EX 1
 #define __ets__
 #define ICACHE_FLASH
 #define NONOSDK22x_190703 1
@@ -118,6 +117,6 @@ typedef long __PTRDIFF_TYPE__;
 #define interrupts() sei()
 #define noInterrupts() cli()
 
-#include "EspTris.ino"
+#include "Tris.ino"
 #endif
 #endif
