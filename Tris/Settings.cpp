@@ -1,7 +1,7 @@
-#include <EEPROM.h>
+#include "Settings.h"
+
 #include "EepromIO.h"
 
-#include "Settings.h"
 
 using namespace NYG;
 

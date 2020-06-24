@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Tris.h"
+
 namespace NYG 
 {
     enum NightlyMode
@@ -46,6 +48,8 @@ namespace NYG
 
         static void Load();
         static void Store(const NYG::Settings& temp);
+
+        static void AddWebServices(AsyncWebServer& server);
 
     private:
 

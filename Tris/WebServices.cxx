@@ -1,5 +1,6 @@
 #include "WebServices.h"
 #include "SmartHomeWiFiApp.h"
+#include "MicroController.h"
 
 String getTemperature() {
     float temperature = 7.7;// bme.readTemperature();
@@ -49,6 +50,8 @@ DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA);
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
+static void add_test_web_messages();
+
 void InitializeWebServices()
 {
     // Initialize SPIFFS
@@ -59,6 +62,48 @@ void InitializeWebServices()
 
     wifi_app.ConnectToWiFi();
 
+    add_test_web_messages();
+    Settings::AddWebServices(server);
+
+    server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String text = "Current time: ";
+        text += DstTime::NowToText();
+        Html::Element& root = *new Html::h1(text.c_str());
+        SendElement(root, *request);
+        });
+
+    server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String text = "Restarting in 5 seconds...";
+        Html::Element& root = *new Html::h1(text.c_str());
+        SendElement(root, *request);
+
+        delay(2000);
+
+        Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 5);
+        });
+
+    server.onNotFound([](AsyncWebServerRequest *request) {
+        if (request->url() == "/favicon.ico")    return;
+        LOGGER << "URL NOT FOUND: " << request->url() << NL;
+        request->send_P(400, "text/plain", "Page not found");
+        });
+
+    // Start server
+    server.begin();
+}
+//--------------------------------------------------------------------
+void SendElement(Html::Element& e, AsyncWebServerRequest& request)
+{
+    LOGGER << "WebService: " << request.url() << NL;
+
+    Html::TextGeneratorCtx ctx;
+    String __text = e.ToString(ctx);
+    delete &e;
+    request.send(200, TextHtmlContentType, __text);
+}
+//--------------------------------------------------------------------
+static void add_test_web_messages()
+{
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -94,12 +139,7 @@ void InitializeWebServices()
     server.on("/pressure", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/plain", getPressure().c_str());
         });
-
-    server.onNotFound([](AsyncWebServerRequest *request) {
-        LOGGER << "Not found" << NL;
-        request->send_P(400, "text/plain", "Not found");
-        });
-
-    // Start server
-    server.begin();
 }
+
+const String TextHtmlContentType = "text/html";
+//bool WebServiceFound             = false;
