@@ -1,0 +1,13 @@
+http://10.0.0.31/clock
+http://10.0.0.31/clock?date=2020/06/03
+http://10.0.0.31/clock?time=12:12:12
+
+http://10.0.0.31/settings/timings/up  
+http://10.0.0.31/settings/timings/down    
+http://10.0.0.31/settings/timings        
+http://10.0.0.31/settings/states/nightly
+http://10.0.0.31/settings/states/sun_protect
+http://10.0.0.31/settings/states       
+http://10.0.0.31/settings
+
+http://10.0.0.31/restart

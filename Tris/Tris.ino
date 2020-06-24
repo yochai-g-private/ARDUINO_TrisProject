@@ -8,24 +8,29 @@
 
 #include "Tris.h"
 #include "LedMgr.h"
+#include "Motor.h"
 
 // Include from my libraries 
 #include "TimeEx.h"
 #include "WebServices.h"
 #include "RTC.h"
 
-void setup() {
-    // Serial port for debugging purposes
+void setup() 
+{
     Logger::Initialize();
 
     bool RTC_ok = RTC::Begin();
 
-//  Signal(RTC_ok);
+    Signal(RTC_ok);
     Serial.println(RTC_ok ? "RTC is OK" : "RTC initialization failed");
 
     Settings::Load();
 
+    TestLeds();
+    TestRelays();
+
     InitializeWebServices();
+
 }
 
 void loop()

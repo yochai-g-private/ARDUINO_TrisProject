@@ -51,6 +51,7 @@ DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA);
 AsyncWebServer server(80);
 
 static void add_test_web_messages();
+static void WS_clock(AsyncWebServerRequest *request);
 
 void InitializeWebServices()
 {
@@ -65,41 +66,58 @@ void InitializeWebServices()
     add_test_web_messages();
     Settings::AddWebServices(server);
 
-    server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String text = "Current time: ";
-        text += DstTime::NowToText();
-        Html::Element& root = *new Html::h1(text.c_str());
-        SendElement(root, *request);
-        });
+    server.on("/clock", HTTP_GET, WS_clock);
 
     server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String text = "Restarting in 5 seconds...";
-        Html::Element& root = *new Html::h1(text.c_str());
+        Html::h1 root("Restarting in 10 seconds...");
         SendElement(root, *request);
-
-        delay(2000);
-
-        Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 5);
+        Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
         });
 
     server.onNotFound([](AsyncWebServerRequest *request) {
         if (request->url() == "/favicon.ico")    return;
         LOGGER << "URL NOT FOUND: " << request->url() << NL;
-        request->send_P(400, "text/plain", "Page not found");
+        SendText("Page not found", *request, 400);
+        //request->send_P(400, "text/plain", );
         });
 
     // Start server
     server.begin();
 }
 //--------------------------------------------------------------------
-void SendElement(Html::Element& e, AsyncWebServerRequest& request)
+static void WS_clock(AsyncWebServerRequest *request)
 {
-    LOGGER << "WebService: " << request.url() << NL;
+    String arg;
+    Times  times = DstTime::Now();
 
-    Html::TextGeneratorCtx ctx;
-    String __text = e.ToString(ctx);
-    delete &e;
-    request.send(200, TextHtmlContentType, __text);
+    if (GetStringParam(*request, "date", arg))
+    {
+        if (!times.ParseDate(arg.c_str()))
+        {
+            SendText("Invalid date", *request);
+            return;
+        }
+
+        DstTime now = times;
+        FixTime::Set(FixTime(now));
+    }
+    else if (GetStringParam(*request, "time", arg))
+    {
+        if (!times.ParseTime(arg.c_str()))
+        {
+            SendText("Invalid time", *request);
+            return;
+        }
+
+        DstTime now = times;
+        FixTime::Set(FixTime(now));
+    }
+
+    String text = "Current time: ";
+    text += DstTime::NowToText();
+    Html::h1 root(text);
+
+    SendElement(root, *request);
 }
 //--------------------------------------------------------------------
 static void add_test_web_messages()
@@ -141,5 +159,3 @@ static void add_test_web_messages()
         });
 }
 
-const String TextHtmlContentType = "text/html";
-//bool WebServiceFound             = false;

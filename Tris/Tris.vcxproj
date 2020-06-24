@@ -126,6 +126,9 @@
     <ClCompile Include="Settings.WebServices.cpp" />
     <ClCompile Include="WebServices.cxx" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Web services URLs.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
