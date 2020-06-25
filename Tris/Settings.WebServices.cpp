@@ -1,7 +1,9 @@
 #include "WebServices.h"
 #include "Settings.h"
 
-
+#define _IndentAttribute(mul, add) (*new Html::StyleAttribute(mul * (ctx.depth + add)))
+#define FieldIndentAttribute  _IndentAttribute(4, 1)
+#define RootIndentAttribute   _IndentAttribute(2, 0)
 
 static String get_element_value(const char* field, const String& value)
 {
@@ -13,7 +15,7 @@ static String get_element_value(const char* field, const String& value)
 Html::Element& create_field(const char* field, const String& value, Html::TextGeneratorCtx& ctx)
 {
     Html::Element& retval = *new Html::h3(get_element_value(field, value).c_str());
-    retval.AddAttribute(*new Html::StyleAttribute(4 * (ctx.depth + 1)));
+    retval.AddAttribute(FieldIndentAttribute);
     return retval;
 }
 
@@ -22,7 +24,7 @@ Html::Element& create_field(const char* field, const String& value, Html::TextGe
 //------------------------------------------------------
 
 #define DECLARE_HTTP_FUNCS(name)    \
-        static void HTTP_handle##name(AsyncWebServerRequest *request);\
+        static void WS_##name(AsyncWebServerRequest *request);\
         static Html::Element& get##name(Html::TextGeneratorCtx& ctx)
 
 DECLARE_HTTP_FUNCS(Settings);
@@ -38,50 +40,74 @@ DECLARE_HTTP_FUNCS(SettingsTimingsDown);
 #define GET_LONG_PARAM(fld, min, max, val, parent_fld)    GET_NUMERIC_PARAM(Long, fld, min, max, val, parent_fld)
 #define GET_BOOL_PARAM(fld, val, parent_fld)              if (GetBoolParam(*request, #fld, val))      temp.parent_fld.fld = val; else;
 
+#if 1
+#undef TRACE
+#define TRACE( extra )  if(TRACING) ; else
+#endif
+
 #define SendSettings(func_id)  \
     Html::TextGeneratorCtx ctx;\
-    Html::Element& e = getSettings##func_id(ctx);\
+    TRACE("before get" #func_id);\
+    Html::Element& e = get##func_id(ctx);\
+    TRACE("before SendElement");\
     SendElement( e, *request );\
+    TRACE("before delete &e");\
     delete &e
 
+#define SetRoot(name, url)    \
+    Html::Element& root = *new Html::Paragraph();\
+    const char* element_name = #name ":";\
+    if (ctx.depth)    {\
+        Html::h1& h1 = *new Html::h1();\
+        h1.AddAttribute(RootIndentAttribute);\
+        root.AddChild(h1);\
+        h1.AddChild(*new Html::Anchor(element_name, url)); }\
+    else { root.AddChild(*new Html::h1(element_name)); }
+
 //------------------------------------------------------
-static void HTTP_handleSettings(AsyncWebServerRequest *request)
+static Html::Element& getSettings(Html::TextGeneratorCtx& ctx)
 {
-    // TODO
+    SetRoot(Settings, "/settings");
+
+    ctx.depth++;
+    root.AddChild(getSettingsStates(ctx));
+    root.AddChild(getSettingsTimings(ctx));
+    ctx.depth--;
+
+    return root;
+}
+//------------------------------------------------------
+static void WS_Settings(AsyncWebServerRequest *request)
+{
+    SendSettings(Settings);
 }
 //------------------------------------------------------
 static Html::Element& getSettingsStates(Html::TextGeneratorCtx& ctx)
 {
-    Html::Element& root = *new Html::h1("States:");
-
-    if (ctx.depth)
-    {
-        root.AddAttribute(*new Html::StyleAttribute(4 * ctx.depth));
-    }
+    SetRoot(States, "/settings/states");
 
     root.AddChild(create_field("manual", String((int)settings.states.manual), ctx));
+    root.AddChild(create_field("DST", String((int)settings.states.DST), ctx));
 
     ctx.depth++;
     root.AddChild(getSettingsStatesNightly(ctx));
     root.AddChild(getSettingsStatesSunProtect(ctx));
     ctx.depth--;
 
-    root.AddChild(create_field("DST", String((int)settings.states.DST), ctx));
-
     return root;
 }
 //------------------------------------------------------
-static void HTTP_handleSettingsStates(AsyncWebServerRequest *request)
+static void WS_SettingsStates(AsyncWebServerRequest *request)
 {
     Settings temp = settings;
     bool b;
 
-    GET_BOOL_PARAM(manual, b, states);
-    GET_BOOL_PARAM(DST, b, states);
+//    GET_BOOL_PARAM(manual, b, states);
+//    GET_BOOL_PARAM(DST, b, states);
 
     Settings::Store(temp);
 
-    SendSettings(States);
+    SendSettings(SettingsStates);
 }
 //------------------------------------------------------
 static String per_day_minutes(uint16_t minutes)
@@ -91,35 +117,38 @@ static String per_day_minutes(uint16_t minutes)
     return text;
 }
 //------------------------------------------------------
+static const char* GetText(NightlyMode mode)
+{
+    switch (mode)
+    {
+#define TREATE_CASE(id) case NM_##id : return #id
+        TREATE_CASE(DISABLED);
+        TREATE_CASE(AIR);
+        TREATE_CASE(ALL);
+#undef  TREATE_CASE
+        return "?";
+    }
+}
+//------------------------------------------------------
 static Html::Element& getSettingsStatesNightly(Html::TextGeneratorCtx& ctx)
 {
-    Html::Element& root = *new Html::h1("Nightly:");
+    SetRoot(Nightly, "/settings/states/nightly");
 
-    if (ctx.depth)
-    {
-        root.AddAttribute(*new Html::StyleAttribute(4 * ctx.depth));
-    }
-
-    root.AddChild(create_field("mode", String((int)settings.states.nightly.mode), ctx));
+    root.AddChild(create_field("mode", GetText(settings.states.nightly.mode), ctx));
     root.AddChild(create_field("down", per_day_minutes(settings.states.nightly.down), ctx));
     root.AddChild(create_field("up", (settings.states.nightly.up == 0xFFFF) ? String("SUNRISE") : per_day_minutes(settings.states.nightly.up), ctx));
 
     return root;
 }
 //------------------------------------------------------
-static void HTTP_handleSettingsStatesNightly(AsyncWebServerRequest *request)
+static void WS_SettingsStatesNightly(AsyncWebServerRequest *request)
 {
-    SendSettings(StatesNightly);
+    SendSettings(SettingsStatesNightly);
 }
 //------------------------------------------------------
 static Html::Element& getSettingsStatesSunProtect(Html::TextGeneratorCtx& ctx)
 {
-    Html::Element& root = *new Html::h1("SunProtect:");
-
-    if (ctx.depth)
-    {
-        root.AddAttribute(*new Html::StyleAttribute(4 * ctx.depth));
-    }
+    SetRoot(SunProtect, "/settings/states/sun_protect");
 
     root.AddChild(create_field("on", String((int)settings.states.sun_protect.on), ctx));
     root.AddChild(create_field("minutes_after_sun_rise", String((int)settings.states.sun_protect.minutes_after_sun_rise), ctx));
@@ -128,51 +157,75 @@ static Html::Element& getSettingsStatesSunProtect(Html::TextGeneratorCtx& ctx)
     return root;
 }
 //------------------------------------------------------
-static void HTTP_handleSettingsStatesSunProtect(AsyncWebServerRequest *request)
+static void WS_SettingsStatesSunProtect(AsyncWebServerRequest *request)
 {
-    SendSettings(StatesSunProtect);
+    SendSettings(SettingsStatesSunProtect);
 }
 //------------------------------------------------------
-static void HTTP_handleSettingsTimings(AsyncWebServerRequest *request)
+static Html::Element& getSettingsTimings(Html::TextGeneratorCtx& ctx)
 {
-    // TODO
+    SetRoot(Timings, "/settings/timings");
+
+    ctx.depth++;
+    root.AddChild(getSettingsTimingsUp(ctx));
+    root.AddChild(getSettingsTimingsDown(ctx));
+    ctx.depth--;
+
+    return root;
 }
 //------------------------------------------------------
-//static void update_SettingsTimings(AsyncWebServerRequest *request, Settings::Timing::Direction& d)
-//{
-//    //Settings temp = settings;
-//    //String   val;
-//    //
-//    //IF_ARG(all)
-//    //{
-//    //    d.
-//    //}
-//
-//    //update_settings(hold);
-//}
-//------------------------------------------------------
-static void HTTP_handleSettingsTimingsUp(AsyncWebServerRequest *request)
+static void WS_SettingsTimings(AsyncWebServerRequest *request)
 {
-    // TODO
-    //    update_SettingsTimings(request, settings.timings.up);
+    SendSettings(SettingsTimings);
 }
 //------------------------------------------------------
-static void HTTP_handleSettingsTimingsDown(AsyncWebServerRequest *request)
+static void addTimings(Html::Element& root, const Settings::Timings::Direction& direction, Html::TextGeneratorCtx& ctx)
 {
-    // TODO
-    //    update_SettingsTimings(request, settings.timings.down);
+ //   ctx.depth++;
+    root.AddChild(create_field("all", String(direction.all, 1), ctx));
+    root.AddChild(create_field("air", String(direction.air, 1), ctx));
+    root.AddChild(create_field("sun", String(direction.sun, 1), ctx));
+//    ctx.depth--;
+}
+//------------------------------------------------------
+static Html::Element& getSettingsTimingsUp(Html::TextGeneratorCtx& ctx)
+{
+    SetRoot(Up, "/settings/timings/up");
+
+    addTimings(root, settings.timings.up, ctx);
+
+    return root;
+}
+//------------------------------------------------------
+static void WS_SettingsTimingsUp(AsyncWebServerRequest *request)
+{
+    SendSettings(SettingsTimingsUp);
+}
+//------------------------------------------------------
+static Html::Element& getSettingsTimingsDown(Html::TextGeneratorCtx& ctx)
+{
+    SetRoot(Down, "/settings/timings/down");
+
+    addTimings(root, settings.timings.down, ctx);
+
+    return root;
+}
+//------------------------------------------------------
+static void WS_SettingsTimingsDown(AsyncWebServerRequest *request)
+{
+    SendSettings(SettingsTimingsDown);
 }
 //------------------------------------------------------
 
 //------------------------------------------------------
 void Settings::AddWebServices(AsyncWebServer& server)
 {
-    //server.on("/settings/timings/up",         HTTP_GET, HTTP_handleSettingsTimingsUp);
-    //server.on("/settings/timings/down",       HTTP_GET, HTTP_handleSettingsTimingsDown);
-    //server.on("/settings/timings",            HTTP_GET, HTTP_handleSettingsTimings);
-      server.on("/settings/states/nightly",     HTTP_GET, HTTP_handleSettingsStatesNightly);
-    //server.on("/settings/states/sun_protect", HTTP_GET, HTTP_handleSettingsStatesSunProtect);
-    //server.on("/settings/states",             HTTP_GET, HTTP_handleSettingsStates);
-    //server.on("/settings",                    HTTP_GET, HTTP_handleSettings);
+    server.on("/settings/timings/up",         HTTP_GET, WS_SettingsTimingsUp);
+    server.on("/settings/timings/down",       HTTP_GET, WS_SettingsTimingsDown);
+    server.on("/settings/timings",            HTTP_GET, WS_SettingsTimings);
+    server.on("/settings/states/nightly",     HTTP_GET, WS_SettingsStatesNightly);
+    server.on("/settings/states/sun_protect", HTTP_GET, WS_SettingsStatesSunProtect);
+    server.on("/settings/states",             HTTP_GET, WS_SettingsStates);
+    server.on("/settings",                    HTTP_GET, WS_Settings);
 }
 //------------------------------------------------------

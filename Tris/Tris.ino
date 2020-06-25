@@ -27,10 +27,12 @@ void setup()
     Settings::Load();
 
     TestLeds();
-    TestRelays();
+ //   TestRelays();
 
     InitializeWebServices();
 
+    LOGGER << "Ready!" << NL;
+    TRACING = true;
 }
 
 void loop()

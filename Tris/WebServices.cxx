@@ -90,6 +90,8 @@ static void WS_clock(AsyncWebServerRequest *request)
     String arg;
     Times  times = DstTime::Now();
 
+    bool set_time = false;
+
     if (GetStringParam(*request, "date", arg))
     {
         if (!times.ParseDate(arg.c_str()))
@@ -98,10 +100,10 @@ static void WS_clock(AsyncWebServerRequest *request)
             return;
         }
 
-        DstTime now = times;
-        FixTime::Set(FixTime(now));
+        set_time = true;
     }
-    else if (GetStringParam(*request, "time", arg))
+    
+    if (GetStringParam(*request, "time", arg))
     {
         if (!times.ParseTime(arg.c_str()))
         {
@@ -109,6 +111,11 @@ static void WS_clock(AsyncWebServerRequest *request)
             return;
         }
 
+        set_time = true;
+    }
+
+    if (set_time)
+    {
         DstTime now = times;
         FixTime::Set(FixTime(now));
     }
