@@ -6,9 +6,9 @@ namespace NYG
 {
     enum NightlyMode
     {
-        NM_DISABLED,
+        NM_DISABLED,    __min_NightlyMode__ = NM_DISABLED,
         NM_AIR,
-        NM_ALL,
+        NM_ALL,         __max_NightlyMode__ = NM_ALL,
     };
 
     struct Settings
@@ -50,6 +50,8 @@ namespace NYG
         static void Store(const NYG::Settings& temp);
 
         static void AddWebServices(AsyncWebServer& server);
+
+        enum { SUNRISE = 0xFFFF };
 
     private:
 

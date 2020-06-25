@@ -34,17 +34,19 @@ DECLARE_HTTP_FUNCS(SettingsStatesSunProtect);
 DECLARE_HTTP_FUNCS(SettingsTimings);
 DECLARE_HTTP_FUNCS(SettingsTimingsUp);
 DECLARE_HTTP_FUNCS(SettingsTimingsDown);
-
+//------------------------------------------------------
 #define GET_NUMERIC_PARAM(type, fld, min, max, val, parent_fld)    if (Get##type##Param(*request, #fld, min, max, true, val))   { temp.parent_fld.fld = val; } else;
 
-#define GET_LONG_PARAM(fld, min, max, val, parent_fld)    GET_NUMERIC_PARAM(Long, fld, min, max, val, parent_fld)
-#define GET_BOOL_PARAM(fld, val, parent_fld)              if (GetBoolParam(*request, #fld, val))      temp.parent_fld.fld = val; else;
-
+//#define GET_LONG_PARAM(fld, min, max, val, parent_fld)    GET_NUMERIC_PARAM(Long, fld, min, max, val, parent_fld)
+#define GET_UNSIGNED_BYTE_PARAM(fld, min, max, val, parent_fld)     GET_NUMERIC_PARAM(UnsignedByte, fld, min, max, val, parent_fld)
+#define GET_DOUBLE_PARAM(fld, min, max, val, parent_fld)            GET_NUMERIC_PARAM(Double, fld, min, max, val, parent_fld)
+#define GET_BOOL_PARAM(fld, val, parent_fld)                        if (GetBoolParam(*request, #fld, val))      temp.parent_fld.fld = val; else;
+//------------------------------------------------------
 #if 1
 #undef TRACE
 #define TRACE( extra )  if(TRACING) ; else
 #endif
-
+//------------------------------------------------------
 #define SendSettings(func_id)  \
     Html::TextGeneratorCtx ctx;\
     TRACE("before get" #func_id);\
@@ -53,7 +55,7 @@ DECLARE_HTTP_FUNCS(SettingsTimingsDown);
     SendElement( e, *request );\
     TRACE("before delete &e");\
     delete &e
-
+//------------------------------------------------------
 #define SetRoot(name, url)    \
     Html::Element& root = *new Html::Paragraph();\
     const char* element_name = #name ":";\
@@ -82,12 +84,17 @@ static void WS_Settings(AsyncWebServerRequest *request)
     SendSettings(Settings);
 }
 //------------------------------------------------------
+static const char* GetYesNo(const bool& b)
+{
+    return b ? "Yes" : "No";
+}
+//------------------------------------------------------
 static Html::Element& getSettingsStates(Html::TextGeneratorCtx& ctx)
 {
     SetRoot(States, "/settings/states");
 
-    root.AddChild(create_field("manual", String((int)settings.states.manual), ctx));
-    root.AddChild(create_field("DST", String((int)settings.states.DST), ctx));
+    root.AddChild(create_field("manual", GetYesNo(settings.states.manual), ctx));
+    root.AddChild(create_field("DST", GetYesNo(settings.states.DST), ctx));
 
     ctx.depth++;
     root.AddChild(getSettingsStatesNightly(ctx));
@@ -102,8 +109,8 @@ static void WS_SettingsStates(AsyncWebServerRequest *request)
     Settings temp = settings;
     bool b;
 
-//    GET_BOOL_PARAM(manual, b, states);
-//    GET_BOOL_PARAM(DST, b, states);
+    GET_BOOL_PARAM(manual, b, states);
+    GET_BOOL_PARAM(DST, b, states);
 
     Settings::Store(temp);
 
@@ -117,7 +124,33 @@ static String per_day_minutes(uint16_t minutes)
     return text;
 }
 //------------------------------------------------------
-static const char* GetText(NightlyMode mode)
+static void parse_per_day_minutes(const String& s, uint16_t& minutes)
+{
+    int h, m;
+    char c;
+
+    if (sscanf(s.c_str(), "%d%c%d", &h, &c, &m) != 3)
+    {
+        LOGGER << "parse_per_day_minutes #1" << NL;
+        return;
+    }
+
+    if (h < 0 || h >= HOURS_PER_DAY)
+    {
+        LOGGER << "parse_per_day_minutes #2" << NL;
+        return;
+    }
+
+    if (m < 0 || m >= MINUTES_PER_HOUR)
+    {
+        LOGGER << "parse_per_day_minutes #3" << NL;
+        return;
+    }
+
+    minutes = (h * MINUTES_PER_HOUR) + m;
+}
+//------------------------------------------------------
+static const char* GetText(const NightlyMode& mode)
 {
     switch (mode)
     {
@@ -136,13 +169,42 @@ static Html::Element& getSettingsStatesNightly(Html::TextGeneratorCtx& ctx)
 
     root.AddChild(create_field("mode", GetText(settings.states.nightly.mode), ctx));
     root.AddChild(create_field("down", per_day_minutes(settings.states.nightly.down), ctx));
-    root.AddChild(create_field("up", (settings.states.nightly.up == 0xFFFF) ? String("SUNRISE") : per_day_minutes(settings.states.nightly.up), ctx));
+    root.AddChild(create_field("up", (settings.states.nightly.up == Settings::SUNRISE) ? String("SUNRISE") : per_day_minutes(settings.states.nightly.up), ctx));
 
     return root;
 }
 //------------------------------------------------------
 static void WS_SettingsStatesNightly(AsyncWebServerRequest *request)
 {
+    Settings temp = settings;
+
+    String val;
+
+    if (GetStringParam(*request, "mode", val))
+    {
+        val.toUpperCase();
+
+        for(int nm = __min_NightlyMode__; nm <= __max_NightlyMode__; nm++)
+            if (val == GetText((NightlyMode)nm))
+            {
+                temp.states.nightly.mode = (NightlyMode)nm;
+                break;
+            }
+    }
+    
+    if (GetStringParam(*request, "down", val))
+        parse_per_day_minutes(val, temp.states.nightly.down);
+
+    if (GetStringParam(*request, "up", val))
+    {
+        val.toUpperCase();
+
+        if (val == "SUNRISE")    temp.states.nightly.up = Settings::SUNRISE;
+        else parse_per_day_minutes(val, temp.states.nightly.up);
+    }
+
+    Settings::Store(temp);
+
     SendSettings(SettingsStatesNightly);
 }
 //------------------------------------------------------
@@ -150,7 +212,7 @@ static Html::Element& getSettingsStatesSunProtect(Html::TextGeneratorCtx& ctx)
 {
     SetRoot(SunProtect, "/settings/states/sun_protect");
 
-    root.AddChild(create_field("on", String((int)settings.states.sun_protect.on), ctx));
+    root.AddChild(create_field("on", GetYesNo(settings.states.sun_protect.on), ctx));
     root.AddChild(create_field("minutes_after_sun_rise", String((int)settings.states.sun_protect.minutes_after_sun_rise), ctx));
     root.AddChild(create_field("duration_minutes", String((int)settings.states.sun_protect.duration_minutes), ctx));
 
@@ -159,6 +221,16 @@ static Html::Element& getSettingsStatesSunProtect(Html::TextGeneratorCtx& ctx)
 //------------------------------------------------------
 static void WS_SettingsStatesSunProtect(AsyncWebServerRequest *request)
 {
+    Settings temp = settings;
+    bool b;
+    uint8_t ub;
+
+    GET_BOOL_PARAM(on, b, states.sun_protect);
+    GET_UNSIGNED_BYTE_PARAM(minutes_after_sun_rise, 0, 240, ub, states.sun_protect);
+    GET_UNSIGNED_BYTE_PARAM(duration_minutes,       1, 240, ub, states.sun_protect);
+
+    Settings::Store(temp);
+
     SendSettings(SettingsStatesSunProtect);
 }
 //------------------------------------------------------
@@ -199,6 +271,15 @@ static Html::Element& getSettingsTimingsUp(Html::TextGeneratorCtx& ctx)
 //------------------------------------------------------
 static void WS_SettingsTimingsUp(AsyncWebServerRequest *request)
 {
+    Settings temp = settings;
+
+    double d;
+    GET_DOUBLE_PARAM(all, 15, 60, d, timings.up);
+    GET_DOUBLE_PARAM(air, 5,  10, d, timings.up);
+    GET_DOUBLE_PARAM(sun, 10, 30, d, timings.up);
+
+    Settings::Store(temp);
+
     SendSettings(SettingsTimingsUp);
 }
 //------------------------------------------------------
@@ -213,6 +294,15 @@ static Html::Element& getSettingsTimingsDown(Html::TextGeneratorCtx& ctx)
 //------------------------------------------------------
 static void WS_SettingsTimingsDown(AsyncWebServerRequest *request)
 {
+    Settings temp = settings;
+
+    double d;
+    GET_DOUBLE_PARAM(all, 15, 60, d, timings.down);
+    GET_DOUBLE_PARAM(air, 5,  10, d, timings.down);
+    GET_DOUBLE_PARAM(sun, 10, 30, d, timings.down);
+
+    Settings::Store(temp);
+
     SendSettings(SettingsTimingsDown);
 }
 //------------------------------------------------------
