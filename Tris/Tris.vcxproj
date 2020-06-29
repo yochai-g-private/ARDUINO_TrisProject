@@ -80,7 +80,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\Tris;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\libraries\EEPROM;$(ProjectDir)..\..\..\libraries\TimeLib;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\libraries\Wire;$(ProjectDir)..\..\..\libraries\DS3231;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\libraries\Ticker\src;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\libraries\Hash\src;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\libraries\ESP8266WiFi\src;$(ProjectDir)..\..\..\..\..\..\..\Program Files (x86)\Arduino\libraries\ESPAsyncTCP\src;$(ProjectDir)..\..\..\..\..\..\..\Program Files (x86)\Arduino\libraries\ESPAsyncWebServer\src;$(ProjectDir)..\..\..\libraries\NYG;$(ProjectDir)..\..\..\..\..\..\..\Program Files (x86)\Arduino\libraries;$(ProjectDir)..\..\..\libraries;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\libraries;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\cores\esp8266;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\cores\esp8266\avr;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\cores\esp8266\libb64;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\cores\esp8266\spiffs;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\cores\esp8266\umm_malloc;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\variants\nodemcu;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\tools\sdk\include;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\tools\sdk\lwip2\include;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\tools\sdk\libc\xtensa-lx106-elf\include;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\2.5.0-4-b40a506\xtensa-lx106-elf\include\c++\4.8.2;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\2.5.0-4-b40a506\xtensa-lx106-elf\include\c++\4.8.2\xtensa-lx106-elf;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\2.5.0-4-b40a506\xtensa-lx106-elf\include;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\2.5.0-4-b40a506\lib\gcc\xtensa-lx106-elf\4.8.2\include;$(ProjectDir)..\..\..\..\..\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.7.1\tools\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ForcedIncludeFiles>$(ProjectDir)__vm\.Tris.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
-      <PreprocessorDefinitions>__ESP8266_esp8266__;__ESP8266_ESP8266__;_VMDEBUG=1;_USE_LOGGER=1;_USE_TIME_EX=1;_USE_RTC=1;__ets__;ICACHE_FLASH;NONOSDK22x_190703=1;F_CPU=80000000L;LWIP_OPEN_SRC;TCP_MSS=536;LWIP_FEATURES=1;LWIP_IPV6=0;ARDUINO=108012;ARDUINO_ESP8266_NODEMCU;ARDUINO_ARCH_ESP8266;LED_BUILTIN=2;FLASHMODE_DIO;ESP8266;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__ESP8266_esp8266__;__ESP8266_ESP8266__;_VMDEBUG=1;_USE_LOGGER=1;_USE_TIME_EX=1;_USE_RTC=1;_USE_LOCATION=1;__ets__;ICACHE_FLASH;NONOSDK22x_190703=1;F_CPU=80000000L;LWIP_OPEN_SRC;TCP_MSS=536;LWIP_FEATURES=1;LWIP_IPV6=0;ARDUINO=108012;ARDUINO_ESP8266_NODEMCU;ARDUINO_ARCH_ESP8266;LED_BUILTIN=2;FLASHMODE_DIO;ESP8266;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -112,6 +112,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ErrorMgr.h" />
     <ClInclude Include="LedMgr.h" />
     <ClInclude Include="Motor.h" />
     <ClInclude Include="Settings.h" />
@@ -120,6 +121,7 @@
     <ClInclude Include="__vm\.Tris.vsarduino.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ErrorMgr.cpp" />
     <ClCompile Include="LedMgr.cpp" />
     <ClCompile Include="Motor.cpp" />
     <ClCompile Include="Settings.cpp" />
@@ -134,7 +136,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties config.Debug.customdebug_esp8266_nodemcuv2_debugger_type="universal" arduino.upload.port="COM25" VM_ADDITIONAL_PREPROC="_USE_LOGGER=1;_USE_TIME_EX=1;_USE_RTC=1;" />
+      <UserProperties config.Debug.customdebug_esp8266_nodemcuv2_debugger_type="universal" arduino.upload.port="COM25" VM_ADDITIONAL_PREPROC="_USE_LOGGER=1;_USE_TIME_EX=1;_USE_RTC=1;_USE_LOCATION=1;" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

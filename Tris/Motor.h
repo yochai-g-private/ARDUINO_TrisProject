@@ -1,14 +1,19 @@
 #pragma once
 
-enum TrisState
+struct Motor
 {
-    TS_Btm = 0,
-    TS_Air,
-    TS_Sun,
-    TS_Top,  __max_TS__ = TS_Top
-};
+    static void Initialize();
+    static void TestRelays();
 
-void TestRelays();
-void StartMotor(TrisState state);
-void TestMotor();
-void StopMotor(bool leave_it_in_unknown_state = false);
+    static void Schedule();
+
+    //static void SetState(TrisState state);
+    //static void SetPower(bool on);
+    //static void Stop(bool leave_it_in_unknown_state = false);
+
+    static void OnLoop();
+
+    static void AddWebServices(AsyncWebServer& server);
+
+    static void PowerOff();
+};

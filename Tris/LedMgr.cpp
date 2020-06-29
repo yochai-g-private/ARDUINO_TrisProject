@@ -2,10 +2,12 @@
 #include "RGB_Led.h"
 #include "LedMgr.h"
 #include "Logger.h"
+#include "Toggler.h"
 
 using namespace NYG;
 
 static RGB_Led led(RED_LED_PIN, GREEN_LED_PIN, BLUE_LEN_PIN);
+static Toggler toggler;
 
 static void test(const char* color, IDigitalOutput& out)
 {
@@ -18,7 +20,7 @@ static void test(const char* color, IDigitalOutput& out)
     }
 }
 //------------------------------------------------------
-void TestLeds()
+void LedMgr::Test()
 {
     LOGGER << "Testing leds: ";
     test("RED",     led.GetRed());
@@ -27,26 +29,28 @@ void TestLeds()
     LOGGER << "Done!" << NL;
 }
 //------------------------------------------------------
-static void signal(IDigitalOutput& out)
+void LedMgr::OnStateChanged(State prev)
 {
-    for (int cnt = 0; cnt < 2; cnt++)
+    State curr = gbl_State;
+
+    if (curr == prev)
+        return;
+
+    toggler.Stop();
+
+    switch (curr)
     {
-        out.On();    delay(50);
-        out.Off();   delay(50);
+        case Manual:        toggler.Start(     led.GetBlue(),       Toggler::OnTotal(500, 60000));      break;
+        case HalfManual:    toggler.Start(     led.GetBlue(),       Toggler::OnTotal(200, 15000));      break;
+        case Ready:         toggler.Start(     led.GetGreen(),      Toggler::OnTotal(500, 60000));      break;
+        case BusyUp:        toggler.StartOnOff(led.GetGreen(),      250);                               break;
+        case BusyDown:      toggler.StartOnOff(led.GetRed(),        250);                               break;
+        case Error:         toggler.StartOnOff(led.GetRed(),       1000);                               break;
     }
 }
 //------------------------------------------------------
-void SignalOK()
+void LedMgr::OnLoop()
 {
-    signal(led.GetGreen());
+    toggler.Toggle();
 }
 //------------------------------------------------------
-void SignalError()
-{
-    signal(led.GetRed());
-}
-//------------------------------------------------------
-void Signal(bool ok)
-{
-    signal(ok ? led.GetGreen() : led.GetRed());
-}

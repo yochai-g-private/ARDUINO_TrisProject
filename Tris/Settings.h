@@ -24,7 +24,8 @@ namespace NYG
             {
                 NightlyMode mode;
 
-                uint16_t    down, up;   // time in per-day-minutes format, up==0xFFFF means at sun rise
+                uint16_t    down, //  time in per-day-minutes format
+                            up;   // time in per-day-minutes format, up==SUNRISE means at sun rise
             }   nightly;
             
             struct

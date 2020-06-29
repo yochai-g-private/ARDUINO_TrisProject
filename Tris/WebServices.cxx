@@ -65,6 +65,8 @@ void InitializeWebServices()
 
     add_test_web_messages();
     Settings::AddWebServices(server);
+    Motor::AddWebServices(server);
+    ErrorMgr::AddWebServices(server);
 
     server.on("/clock", HTTP_GET, WS_clock);
 
@@ -92,41 +94,85 @@ static void WS_clock(AsyncWebServerRequest *request)
 
     bool set_time = false;
 
-    if (GetStringParam(*request, "date", arg))
+    if (GetStringParam(*request, "curr", arg))
     {
-        if (!times.ParseDate(arg.c_str()))
+        const char* s = arg.c_str();
+
+        set_time = times.ParseDateAndTime(s)    ||
+                   times.ParseDate(s)           ||
+                   times.ParseTime(s);
+
+        if(!set_time)
         {
-            SendText("Invalid date", *request);
+            SendText("Invalid date&time", *request);
             return;
         }
-
-        set_time = true;
     }
-    
-    if (GetStringParam(*request, "time", arg))
+    else
     {
-        if (!times.ParseTime(arg.c_str()))
+        if (GetStringParam(*request, "date", arg))
         {
-            SendText("Invalid time", *request);
-            return;
+            if (!times.ParseDate(arg.c_str()))
+            {
+                SendText("Invalid date", *request);
+                return;
+            }
+
+            set_time = true;
         }
 
-        set_time = true;
+        if (GetStringParam(*request, "time", arg))
+        {
+            if (!times.ParseTime(arg.c_str()))
+            {
+                SendText("Invalid time", *request);
+                return;
+            }
+
+            set_time = true;
+        }
     }
 
     if (set_time)
     {
         DstTime now = times;
-        FixTime::Set(FixTime(now));
+        RTC::Set(FixTime(now));
     }
+
+    Settings temp = settings;
+    bool b;
+
+    GET_BOOL_PARAM(DST, b, states);
+
+    Settings::Store(temp);
 
     String text = "Current time: ";
     text += DstTime::NowToText();
     Html::h1 root(text);
 
+    root.AddChild(*new Html::h2(String("Daylight saving time: ") + GetYesNo(settings.states.DST)));
+
     SendElement(root, *request);
 }
 //--------------------------------------------------------------------
+String GetElementValue(const char* field, const String& value)
+{
+    char retval[64];
+    sprintf(retval, "%s = %s", field, value.c_str());
+    return retval;
+}
+//------------------------------------------------------
+Html::Element& CreateField(const char* field, const String& value, Html::TextGeneratorCtx& ctx)
+{
+    Html::Element& retval = *new Html::h3(GetElementValue(field, value).c_str());
+    retval.AddAttribute(FieldIndentAttribute);
+    return retval;
+}
+//------------------------------------------------------
+
+
+
+
 static void add_test_web_messages()
 {
     // Route for root / web page
@@ -165,4 +211,4 @@ static void add_test_web_messages()
         request->send_P(200, "text/plain", getPressure().c_str());
         });
 }
-
+//------------------------------------------------------

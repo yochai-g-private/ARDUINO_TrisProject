@@ -2,16 +2,30 @@
 #include "Motor.h"
 #include "Timer.h"
 #include "IOutput.h"
+#include "Scheduler.h"
+#include "Sun.h"
 
-#define TS_UNKNOW     ((TrisState)-1)
+enum TrisPosition
+{
+    TP_Btm = 1,
+    TP_Air,
+    TP_Sun,
+    TP_Top, __max_TP__ = TP_Top
+};
 
-static TrisState st_tris_state = TS_UNKNOW;
+#define TP_UNKNOWN     ((TrisPosition)0)
+
+static TrisPosition st_tris_position  = TP_UNKNOWN;
+static TrisPosition required_position = TP_UNKNOWN;
 
 static DigitalOutputPin*    pPowerSwitchRelay,
                        *    pMotorSwitchRelay,
                        *    pMotorDirectionRelay;
 
-static void initialize()
+static void set_power(bool on);
+static void set_current_position(TrisPosition p);
+
+void Motor::Initialize()
 {
     static DigitalOutputPin     sPowerSwitchRelay(MANUAL_RELAY_PIN),
                                 sMotorSwitchRelay(MOTOR_RELAY_PIN),
@@ -27,6 +41,7 @@ static void initialize()
 }
 
 static Timer                MotorStopTimer;
+static Scheduler::Handler   next_position_handler;
 
 static void test(const char* name, IDigitalOutput& out)
 {
@@ -39,9 +54,8 @@ static void test(const char* name, IDigitalOutput& out)
     }
 }
 //------------------------------------------------------
-void TestRelays()
+void Motor::TestRelays()
 {
-    initialize();
     LOGGER << "Testing relays: ";
     test("POWER",   PowerSwitchRelay);
     test("MOTOR",   MotorSwitchRelay);
@@ -49,13 +63,444 @@ void TestRelays()
     LOGGER << "Done!" << NL;
 }
 //------------------------------------------------------
-void StartMotor(TrisState state)
+static void start(bool down)
 {
-#if 0
-    if (TS_UNKNOW == st_tris_state)
+    set_power(true);
+
+    LOGGER << "Starting " << (down ? "DOWN" : "UP") << " motor" << NL;
+
+    if (down)
     {
-        st_tris_state = TS_Btm;
-        StartMotor(TS_Top);
+        MotorDirectionRelay.On();
+        delay(200);
+    }
+
+    MotorSwitchRelay.On();
+
+    gbl_State = down ? BusyDown : BusyUp;
+}
+//------------------------------------------------------
+static void stop()
+{
+    if (!MotorDirectionRelay.Get())
+        return;
+
+    LOGGER << "Stopping motor" << NL;
+
+    MotorStopTimer.Stop();
+
+    MotorSwitchRelay.Off();
+    delay(200);
+    MotorDirectionRelay.Off();
+    delay(300);
+
+    gbl_State = Ready;
+}
+//------------------------------------------------------
+static void set_power(bool on)
+{
+    if (pPowerSwitchRelay->Get() == on)
+        return;
+
+    LOGGER << "Setting power " << (on ? "ON" : "OFF") << NL;
+
+    Scheduler::Cancel(next_position_handler, "OnPower");
+
+    stop();
+    pPowerSwitchRelay->Set(on);
+    st_tris_position = required_position = TP_UNKNOWN;
+
+    gbl_State = on ? Ready : Manual;
+}
+//------------------------------------------------------
+void Motor::OnLoop()
+{
+    if (gbl_State == Error)
+        return;
+
+    if (MotorStopTimer.Test())
+    {
+        stop();
+
+        if (required_position != TP_UNKNOWN)
+        {
+            set_current_position(required_position);
+        }
+    }
+}
+//------------------------------------------------------
+struct Event
+{
+    FixTime         t;
+    TrisPosition    p;
+    const char*     d;
+};
+//------------------------------------------------------
+static const char* GetPositionText(TrisPosition p)
+{
+    switch (p)
+    {
+        #define TREATE_CASE(id) case TP_##id : return #id
+        TREATE_CASE(UNKNOWN);
+        TREATE_CASE(Top);
+        TREATE_CASE(Sun);
+        TREATE_CASE(Air);
+        TREATE_CASE(Btm);
+        #undef  TREATE_CASE
+    }
+
+    return "?";
+}
+//------------------------------------------------------
+static void set_current_position(TrisPosition p)
+{
+    if (st_tris_position == p)
+        return;
+
+    stop();
+
+    bool   down;
+    double seconds;
+
+    LOGGER << "Current position is " << GetPositionText(st_tris_position) << NL;
+
+    TrisPosition de_facto_p = p;
+
+    switch (st_tris_position)
+    {
+        case TP_UNKNOWN : 
+        {
+            switch (p)
+            {
+                case TP_Btm:
+                case TP_Air:
+                case TP_Sun:
+                {
+                    down = true;
+                    seconds = settings.timings.down.all;
+                    de_facto_p = TP_Btm;
+                    break;
+                }
+
+                case TP_Top:
+                {
+                    down = false;
+                    seconds = settings.timings.up.all;
+                    de_facto_p = TP_Top;
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case TP_Btm:
+        {
+            down = false;
+
+            switch (p)
+            {
+                case TP_Air:
+                {
+                    seconds = settings.timings.up.air;
+                    break;
+                }
+
+                case TP_Sun:
+                {
+                    seconds = settings.timings.up.sun;
+                    break;
+                }
+
+                case TP_Top:
+                {
+                    seconds = settings.timings.up.all;
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case TP_Air:
+        {
+            down = false;
+
+            switch (p)
+            {
+                case TP_Btm:
+                {
+                    down = true;
+                    seconds = settings.timings.down.all - settings.timings.down.air;
+                    break;
+                }
+
+                case TP_Sun:
+                {
+                    seconds = settings.timings.up.sun - settings.timings.up.air;
+                    break;
+                }
+
+                case TP_Top:
+                {
+                    seconds = settings.timings.up.all - settings.timings.up.air;
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case TP_Sun:
+        {
+            down = true;
+
+            switch (p)
+            {
+                case TP_Btm:
+                {
+                    seconds = settings.timings.down.all - settings.timings.down.sun;
+                    break;
+                }
+
+                case TP_Air:
+                {
+                    seconds = settings.timings.down.all - settings.timings.down.air;
+                    break;
+                }
+
+                case TP_Top:
+                {
+                    down = false;
+                    seconds = settings.timings.up.all - settings.timings.up.sun;
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case TP_Top:
+        {
+            down = true;
+
+            switch (p)
+            {
+                case TP_Btm:
+                {
+                    seconds = settings.timings.down.all;
+                    break;
+                }
+
+                case TP_Air:
+                {
+                    seconds = settings.timings.down.air;
+                    break;
+                }
+
+                case TP_Sun:
+                {
+                    seconds = settings.timings.down.sun;
+                    break;
+                }
+            }
+
+            break;
+        }
+    }
+
+    LOGGER << "Setting position to " << GetPositionText(de_facto_p) << NL;
+
+    start(down);
+
+    LOGGER << "Motor will stop in " << seconds << " seconds" << NL;
+
+    MotorStopTimer.StartOnce(seconds * 1000);
+
+    required_position = (TP_UNKNOWN == st_tris_position) ? p : TP_UNKNOWN;
+    st_tris_position  = p;
+}
+//------------------------------------------------------
+static void set_motor_state(void* ctx)
+{
+    TrisPosition* p = (TrisPosition*)ctx;
+    set_current_position(*p);
+    Motor::Schedule();
+}
+//------------------------------------------------------
+static FixTime get_time_from_minutes(const DstTime& now, uint16_t minutes)
+{
+    Times times = now;
+    times.m = minutes % MINUTES_PER_HOUR;
+    times.h = (minutes - times.m) / MINUTES_PER_HOUR;
+    return FixTime(DstTime(times));
+}
+//------------------------------------------------------
+void Motor::Schedule()
+{
+    if (gbl_State == Error)
+        return;
+
+    if (settings.states.manual)
+        return;
+
+    Event events[8];
+
+    memset(events, 0, sizeof(events));
+
+    DstTime dst = DstTime::Now();
+    FixTime now = FixTime(dst);
+
+    if (settings.states.nightly.mode != NM_DISABLED)
+    {
+        FixTime down_time = get_time_from_minutes(dst, settings.states.nightly.down);
+
+        if (down_time < now)
+        {
+            // passee
+            events[0].t = down_time;
+            events[4].t = down_time + SECONDS_PER_DAY;
+        }
+        else
+        {
+            // in future
+            events[0].t = down_time - SECONDS_PER_DAY;
+            events[4].t = down_time;
+        }
+
+        events[0].p =
+        events[4].p = (settings.states.nightly.mode == NM_AIR) ? TP_Air : TP_Btm;
+
+        events[0].d =
+        events[4].d = (settings.states.nightly.mode == NM_AIR) ? "Nightly AIR" : "Nightly BOTTOM";
+
+        FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? Sun::GetTodayLocalRiseTime() : get_time_from_minutes(dst, settings.states.nightly.up);
+
+        if (up_time < now)
+        {
+            // passee
+            events[1].t = up_time;
+            events[5].t = up_time + SECONDS_PER_DAY;
+        }
+        else
+        {
+            // in future
+            events[1].t = up_time - SECONDS_PER_DAY;
+            events[5].t = up_time;
+        }
+
+        events[1].p =
+        events[5].p = TP_Top;
+
+        events[1].d =
+        events[5].d = "Nightly TOP";
+    }
+
+    if (settings.states.sun_protect.on)
+    {
+        FixTime down_time = Sun::GetTodayLocalRiseTime() + (SECONDS_PER_MINUTE * (int)settings.states.sun_protect.minutes_after_sun_rise);
+
+        if (down_time < now)
+        {
+            // passee
+            events[2].t = down_time;
+            events[6].t = down_time + SECONDS_PER_DAY;
+        }
+        else
+        {
+            // in future
+            events[2].t = down_time - SECONDS_PER_DAY;
+            events[6].t = down_time;
+        }
+
+        events[2].p =
+        events[6].p = TP_Sun;
+
+        events[2].d =
+        events[6].d = "Sun PROTECTED";
+
+        FixTime up_time = down_time + +(SECONDS_PER_MINUTE * (int)settings.states.sun_protect.duration_minutes);
+
+        if (up_time < now)
+        {
+            // passee
+            events[3].t = up_time;
+            events[7].t = up_time + SECONDS_PER_DAY;
+        }
+        else
+        {
+            // in future
+            events[3].t = up_time - SECONDS_PER_DAY;
+            events[7].t = up_time;
+        }
+
+        events[3].p =
+        events[7].p = TP_Top;
+
+        events[3].d =
+        events[7].d = "Sun UNPROTECTED";
+
+    }
+
+    int idx, max_idx;
+
+    for (idx = 0, max_idx = countof(events); idx < max_idx; idx++)
+    {
+        //  
+        if ((idx + 1 < max_idx)                     &&      // not the last one
+            (events[idx].p == TP_UNKNOWN        ||          // not set
+             (events[idx+1].p != TP_UNKNOWN &&              // next set
+              events[idx].t > events[idx+1].t)))            // next is earlier
+        {
+            memcpy(events + idx, 
+                   events + idx + 1, 
+                   sizeof(*events) * (max_idx - (idx + 1)));
+
+            idx--;
+            max_idx--;
+        }
+    }
+
+    Event* curr_event = NULL,
+         * next_event = NULL;
+
+    for (idx = 0; idx < max_idx; idx++)
+    {
+        if (events[idx].t < now)
+        {
+            curr_event = events + idx;
+        }
+        else
+        {
+            next_event = events + idx;
+            break;
+        }
+    }
+
+    if (curr_event)
+    {
+        set_current_position(curr_event->p);
+        static Event next = *next_event;
+        next_position_handler = Scheduler::Add(set_motor_state, &next.p, next.d, next.t);
+
+        return;
+    }
+
+    set_current_position(TP_Top);
+}
+//------------------------------------------------------
+void Motor::PowerOff()
+{
+    set_power(false);
+}
+//------------------------------------------------------
+#if 0
+void Motor::SetState(TrisState state)
+{
+    if (TP_UNKNOW == st_tris_state)
+    {
+        st_tris_state = TP_Btm;
+        StartMotor(TP_Top);
     }
 
     if (st_tris_state == state)
@@ -72,18 +517,18 @@ void StartMotor(TrisState state)
 
         switch (st_tris_state)
         {
-            case TS_Btm:  start = 0;        break;
-            case TS_Air:  start = d.air;    break;
-            case TS_Sun:  start = d.sun;    break;
-            case TS_Top:  start = d.all;    break;
+            case TP_Btm:  start = 0;        break;
+            case TP_Air:  start = d.air;    break;
+            case TP_Sun:  start = d.sun;    break;
+            case TP_Top:  start = d.all;    break;
         }
 
         switch (state)
         {
-            case TS_Btm:  end = 0;          break;
-            case TS_Air:  end = d.air;      break;
-            case TS_Sun:  end = d.sun;      break;
-            case TS_Top:  end = d.all;      break;
+            case TP_Btm:  end = 0;          break;
+            case TP_Air:  end = d.air;      break;
+            case TP_Sun:  end = d.sun;      break;
+            case TP_Top:  end = d.all;      break;
         }
     }
     else
@@ -92,18 +537,18 @@ void StartMotor(TrisState state)
 
         switch (st_tris_state)
         {
-            case TS_Btm:  start = d.all;    break;
-            case TS_Air:  start = d.air;    break;
-            case TS_Sun:  start = d.sun;    break;
-            case TS_Top:  start = 0;        break;
+            case TP_Btm:  start = d.all;    break;
+            case TP_Air:  start = d.air;    break;
+            case TP_Sun:  start = d.sun;    break;
+            case TP_Top:  start = 0;        break;
         }
 
         switch (state)
         {
-            case TS_Btm:  end = d.all;      break;
-            case TS_Air:  end = d.air;      break;
-            case TS_Sun:  end = d.sun;      break;
-            case TS_Top:  end = 0;          break;
+            case TP_Btm:  end = d.all;      break;
+            case TP_Air:  end = d.air;      break;
+            case TP_Sun:  end = d.sun;      break;
+            case TP_Top:  end = 0;          break;
         }
     }
 
@@ -118,26 +563,11 @@ void StartMotor(TrisState state)
     MotorStopTimer.StartOnce((long)seconds * 1000);
 
     st_tris_state = state;
+}
 #endif
-}
 //---------------------------------------------------------------
-void TestMotor()
+void Motor::AddWebServices(AsyncWebServer& server)
 {
-    if (MotorStopTimer.Test())
-        StopMotor();
-}
-//---------------------------------------------------------------
-void StopMotor(bool leave_it_in_unknown_state)
-{
-    if (leave_it_in_unknown_state)
-        st_tris_state = TS_UNKNOW;
 
-    if (!MotorDirectionRelay.Get())
-        return;
-
- //?????  Led.SetOff();
-   MotorSwitchRelay.Off();
-   delay(200);
-   MotorDirectionRelay.Off();
 }
 //---------------------------------------------------------------

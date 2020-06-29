@@ -21,10 +21,13 @@ void  Settings::Load()
         EepromOutput settings_output;
         settings_output << settings;
 
+        ErrorMgr::Clean();
+
         LOGGER << "Settings written" << NL;
     }
     else
     {
+        ErrorMgr::Load();
         LOGGER << "Settings OK" << NL;
     }
 
@@ -40,6 +43,8 @@ void  Settings::Store(const NYG::Settings& temp)
 
         EepromOutput settings_output;
         settings_output << temp;
+
+        OnSettingsChanged();
     }
 }
 //------------------------------------------------------
@@ -49,7 +54,7 @@ namespace NYG
     Settings Settings::defaults =
     {
         "TRIS",                             // name
-        1,                                  // version
+        0,                                  // version
 
         // States
         {

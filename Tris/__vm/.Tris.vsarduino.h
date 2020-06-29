@@ -19,6 +19,7 @@
 #define _USE_LOGGER 1
 #define _USE_TIME_EX 1
 #define _USE_RTC 1
+#define _USE_LOCATION 1
 #define __ets__
 #define ICACHE_FLASH
 #define NONOSDK22x_190703 1

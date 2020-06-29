@@ -1,6 +1,10 @@
 #pragma once
 
-void TestLeds();
-void SignalOK();
-void SignalError();
-void Signal(bool ok);
+struct LedMgr
+{
+    static void Test();
+
+    static void OnStateChanged(State prev);
+
+    static void OnLoop();
+};
