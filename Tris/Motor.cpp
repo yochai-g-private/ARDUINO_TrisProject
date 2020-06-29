@@ -494,80 +494,8 @@ void Motor::PowerOff()
     set_power(false);
 }
 //------------------------------------------------------
-#if 0
-void Motor::SetState(TrisState state)
-{
-    if (TP_UNKNOW == st_tris_state)
-    {
-        st_tris_state = TP_Btm;
-        StartMotor(TP_Top);
-    }
-
-    if (st_tris_state == state)
-        return;
-
-    bool move_up = st_tris_state < state;
-
-    const Configuration::Timing::Direction& d = (move_up) ? cfg.timings.up : cfg.timings.down;
-    double start, end;
-
-    if (move_up)
-    {
-        const Configuration::Timing::Direction& d = cfg.timings.up;
-
-        switch (st_tris_state)
-        {
-            case TP_Btm:  start = 0;        break;
-            case TP_Air:  start = d.air;    break;
-            case TP_Sun:  start = d.sun;    break;
-            case TP_Top:  start = d.all;    break;
-        }
-
-        switch (state)
-        {
-            case TP_Btm:  end = 0;          break;
-            case TP_Air:  end = d.air;      break;
-            case TP_Sun:  end = d.sun;      break;
-            case TP_Top:  end = d.all;      break;
-        }
-    }
-    else
-    {
-        const Configuration::Timing::Direction& d = cfg.timings.down;
-
-        switch (st_tris_state)
-        {
-            case TP_Btm:  start = d.all;    break;
-            case TP_Air:  start = d.air;    break;
-            case TP_Sun:  start = d.sun;    break;
-            case TP_Top:  start = 0;        break;
-        }
-
-        switch (state)
-        {
-            case TP_Btm:  end = d.all;      break;
-            case TP_Air:  end = d.air;      break;
-            case TP_Sun:  end = d.sun;      break;
-            case TP_Top:  end = 0;          break;
-        }
-    }
-
-    Led.SetOff();
-    LedToggler.StartOnOff(move_up ? Led.GetGreen() : Led.GetBlue(), 500);
-    double seconds = end - start;
-
-    MotorDirectionRelay.Set(move_up);
-    delay(200);
-    MotorSwitchRelay.On();
-
-    MotorStopTimer.StartOnce((long)seconds * 1000);
-
-    st_tris_state = state;
-}
-#endif
-//---------------------------------------------------------------
 void Motor::AddWebServices(AsyncWebServer& server)
 {
 
 }
-//---------------------------------------------------------------
+//------------------------------------------------------
