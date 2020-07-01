@@ -8,7 +8,8 @@ void InitializeWebServices();
 String GetElementValue(const char* field, const String& value);
 Html::Element& CreateField(const char* field, const String& value, Html::TextGeneratorCtx& ctx);
 
-#define _IndentAttribute(mul, add) (*new Html::StyleAttribute(mul * (ctx.depth + add)))
+#define _IndentAttribute(mul, add)  Html::StyleAttribute::Indent(mul * (ctx.depth + add))
+#define _BackgroundImageAttribute()  Html::StyleAttribute::BackgroundImage("Tris_1.png")
 #define FieldIndentAttribute  _IndentAttribute(4, 1)
 #define RootIndentAttribute   _IndentAttribute(2, 0)
 

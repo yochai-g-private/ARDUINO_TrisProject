@@ -543,6 +543,10 @@ void Motor::AddWebServices(AsyncWebServer& server)
 {
     static const char* MAIN_URL = "/motor";
 
+    server.on("/Tris.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/Tris.gif", "image/gif");
+        });
+
     server.on(MAIN_URL, HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
 

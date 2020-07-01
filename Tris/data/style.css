@@ -9,6 +9,12 @@ html {
   margin: 0px auto;
   text-align: center;
 }
+
+body {
+    background-image: url("/Tris.gif");
+    background-color: #cccccc;
+}
+
 h1 {
   color: #0F3376;
   padding: 2vh;
