@@ -39,9 +39,15 @@ void setup()
 
     InitializeWebServices();
 
-    Motor::Schedule();
+    if (Error != gbl_State)
+    {
+        gbl_State = settings.states.manual ? Manual : Ready;
+        LOGGER << "State set to " << ((Manual == gbl_State) ? "MANUAL" : "READY") << NL;
+    }
 
-    LOGGER << "Ready!" << NL;
+    //Motor::Schedule();
+
+    LOGGER << "Started!" << NL;
     //TRACING = true;
 }
 //-----------------------------------------------------------

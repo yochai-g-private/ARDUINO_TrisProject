@@ -39,3 +39,82 @@ p {
   vertical-align:middle;
   padding-bottom: 15px;
 }
+
+
+
+
+.button_GREEN {
+    background-color: #006400
+}
+
+.button_RED {
+    background-color: #f44336;
+}
+
+.button_BLUE {
+}
+
+#power-text {
+    color: #2a2a2a;
+    text-shadow: 0 1px 0 #ffba92;
+}
+
+#btn-bg {
+    width: 82px;
+    height: 82px;
+    background: #cdd3c9;
+    border-radius: 41px;
+    margin: 0 auto 20px;
+    border-bottom: 2px solid #2a2a2a;
+    border-top: 2px solid #fff;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+#btn-bg.active {
+    background: #2d3036;
+    border-bottom: 2px solid #ffcab6;
+    border-top: 2px solid #e66847;
+}
+
+#btn-highlight {
+    width: 41px;
+    height: 82px;
+    background: #eee;
+    margin-left: 41px;
+}
+
+.active #btn-highlight {
+    background: #52555d;
+}
+
+#btn-ring {
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    border: 10px solid #2a2a2a;
+    top: 10px;
+    left: 10px;
+    border-radius: 31px;
+}
+
+.active #btn-ring {
+    border-color: #61fc8c;
+}
+
+#ring-line {
+    width: 10px;
+    height: 41px;
+    margin: -14px auto;
+    background: #2a2a2a;
+    border-radius: 7px;
+    border-right: 3px solid #eee;
+    border-left: 3px solid #cdd3c9;
+}
+
+.active #ring-line {
+    background: #61fc8c;
+    border-right: 3px solid #52555d;
+    border-left: 3px solid #2d3036;
+}

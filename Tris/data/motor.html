@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TRIS Motor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body onload="OnLoad()">
+    <h1>Motor</h1>
+    <p id="STATE"><strong>%STATE%</strong></p><br>
+    <p>
+        <a id="UP">  <button class="button button_GREEN"    onclick="window.location.href = '/motor_up';">UP</button></a><br>
+        <a id="STOP"><button class="button button_RED"      onclick="window.location.href = '/motor_stop';">STOP</button></a><br>
+        <a id="DOWN"><button class="button button_BLUE"     onclick="window.location.href = '/motor_down';">DOWN</button></a><br>
+    </p>
+    <a>
+        <div id="btn-bg" onclick="window.location.href='/motor_toggle_power'">
+            <div id="btn-highlight"></div>
+            <div id="btn-ring">
+                <div id="ring-line"></div>
+            </div>
+        </div>
+    </a>
+</body>
+<script>
+    function OnStateChanged() {
+        var state = document.getElementById("STATE");
+        var up = document.getElementById("UP");
+        var down = document.getElementById("DOWN");
+        var stop = document.getElementById("STOP");
+        if (state.innerText == "Ready") {
+            stop.style.display = "none";
+            up.style.display = "block";
+            down.style.display = "block";
+        }
+        else if (state.innerText.startsWith("Rolling")) {
+            stop.style.display = "block";
+            up.style.display = "none";
+            down.style.display = "none";
+        }
+        else if (state.innerText == "Powered OFF") {
+            stop.style.display = "none";
+            up.style.display = "none";
+            down.style.display = "none";
+        }
+    }
+
+    function OnLoad() {
+        OnStateChanged();
+    }
+
+    setInterval(function () {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                var state = document.getElementById("STATE");
+                var changed = state.innerHTML != this.responseText;
+                state.innerHTML = this.responseText;
+                if (changed)
+                    OnStateChanged();
+            }
+        };
+        xhttp.open("GET", "/motor_state", true);
+        xhttp.send();
+      }, 1000 ) ;
+</script>
+</html>

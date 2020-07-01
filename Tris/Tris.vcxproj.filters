@@ -9,9 +9,21 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{23644f7c-4ce9-490c-b529-967b8a9c6a20}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Tris.ino" />
+    <None Include="data\demo.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\style.css">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\motor.html">
+      <Filter>data</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.Tris.vsarduino.h">

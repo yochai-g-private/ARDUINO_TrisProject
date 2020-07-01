@@ -2,46 +2,11 @@
 #include "SmartHomeWiFiApp.h"
 #include "MicroController.h"
 
-String getTemperature() {
-    float temperature = 7.7;// bme.readTemperature();
-    // Read temperature as Fahrenheit (isFahrenheit = true)
-    //float t = dht.readTemperature(true);
-    Serial.println(temperature);
-    return String(temperature);
-}
+#define _USE_DEMO_WEB_SERVICES  1
 
-String getHumidity() {
-    float humidity = 66.8;// bme.readHumidity();
-    Serial.println(humidity);
-    return String(humidity);
-}
-
-String getPressure() {
-    float pressure = 1024;// bme.readPressure() / 100.0F;
-    Serial.println(pressure);
-    return String(pressure);
-}
-
-static String ledState;
-static bool led_ON = false;
-// Replaces placeholder with LED state value
-String processor(const String& var) {
-    Serial.println(var);
-    if (var == "STATE") {
-        ledState = led_ON ? "ON" : "OFF";
-        Serial.print(ledState);
-        return ledState;
-    }
-    else if (var == "TEMPERATURE") {
-        return getTemperature();
-    }
-    else if (var == "HUMIDITY") {
-        return getHumidity();
-    }
-    else if (var == "PRESSURE") {
-        return getPressure();
-    }
-}
+#if _USE_DEMO_WEB_SERVICES
+static void add_demo_web_messages();
+#endif //_USE_DEMO_WEB_SERVICES
 
 // Replace with your network credentials
 const char* ssid = "HomeNet";	//"ESP8266_Demo";
@@ -50,7 +15,6 @@ DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA);
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
-static void add_test_web_messages();
 static void WS_clock(AsyncWebServerRequest *request);
 
 void InitializeWebServices()
@@ -63,7 +27,10 @@ void InitializeWebServices()
 
     wifi_app.ConnectToWiFi();
 
-    add_test_web_messages();
+#if _USE_DEMO_WEB_SERVICES
+    add_demo_web_messages();
+#endif //_USE_DEMO_WEB_SERVICES
+
     Settings::AddWebServices(server);
     Motor::AddWebServices(server);
     ErrorMgr::AddWebServices(server);
@@ -71,10 +38,10 @@ void InitializeWebServices()
     server.on("/clock", HTTP_GET, WS_clock);
 
     server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
-        Html::h1 root("Restarting in 10 seconds...");
-        SendElement(root, *request);
-        Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
-        });
+              Html::h1 root("Restarting in 10 seconds...");
+              SendElement(root, *request);
+              Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
+              });
 
     server.onNotFound([](AsyncWebServerRequest *request) {
         if (request->url() == "/favicon.ico")    return;
@@ -171,13 +138,54 @@ Html::Element& CreateField(const char* field, const String& value, Html::TextGen
 //------------------------------------------------------
 
 
+#if _USE_DEMO_WEB_SERVICES
 
+String getTemperature() {
+    float temperature = 7.7;// bme.readTemperature();
+    // Read temperature as Fahrenheit (isFahrenheit = true)
+    //float t = dht.readTemperature(true);
+    Serial.println(temperature);
+    return String(temperature);
+}
 
-static void add_test_web_messages()
+String getHumidity() {
+    float humidity = 66.8;// bme.readHumidity();
+    Serial.println(humidity);
+    return String(humidity);
+}
+
+String getPressure() {
+    float pressure = 1024;// bme.readPressure() / 100.0F;
+    Serial.println(pressure);
+    return String(pressure);
+}
+
+static String ledState;
+static bool led_ON = false;
+// Replaces placeholder with LED state value
+static String processor(const String& var) {
+    Serial.println(var);
+    if (var == "STATE") {
+        ledState = led_ON ? "ON" : "OFF";
+        Serial.print(ledState);
+        return ledState;
+    }
+    else if (var == "TEMPERATURE") {
+        return getTemperature();
+    }
+    else if (var == "HUMIDITY") {
+        return getHumidity();
+    }
+    else if (var == "PRESSURE") {
+        return getPressure();
+    }
+}
+
+static void add_demo_web_messages()
 {
     // Route for root / web page
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/index.html", String(), false, processor);
+    server.on("/demo", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/demo.html", String(), false, processor);
         });
 
     // Route to load style.css file
@@ -189,14 +197,14 @@ static void add_test_web_messages()
     server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request) {
         //gitalWrite(ledPin, HIGH);
         led_ON = true;
-        request->send(SPIFFS, "/index.html", String(), false, processor);
+        request->send(SPIFFS, "/demo.html", String(), false, processor);
         });
 
     // Route to set GPIO to LOW
     server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request) {
         //gitalWrite(ledPin, LOW);
         led_ON = false;
-        request->send(SPIFFS, "/index.html", String(), false, processor);
+        request->send(SPIFFS, "/demo.html", String(), false, processor);
         });
 
     server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -211,4 +219,6 @@ static void add_test_web_messages()
         request->send_P(200, "text/plain", getPressure().c_str());
         });
 }
+#endif //_USE_DEMO_WEB_SERVICES
+
 //------------------------------------------------------

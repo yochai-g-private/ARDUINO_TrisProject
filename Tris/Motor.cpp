@@ -4,6 +4,7 @@
 #include "IOutput.h"
 #include "Scheduler.h"
 #include "Sun.h"
+#include "WebServices.h"
 
 enum TrisPosition
 {
@@ -24,6 +25,9 @@ static DigitalOutputPin*    pPowerSwitchRelay,
 
 static void set_power(bool on);
 static void set_current_position(TrisPosition p);
+
+static int              rolling_seconds;
+static unsigned long    rolling_started;
 
 void Motor::Initialize()
 {
@@ -82,8 +86,10 @@ static void start(bool down)
 //------------------------------------------------------
 static void stop()
 {
-    if (!MotorDirectionRelay.Get())
+    if (!MotorSwitchRelay.Get())
+    {
         return;
+    }
 
     LOGGER << "Stopping motor" << NL;
 
@@ -313,9 +319,12 @@ static void set_current_position(TrisPosition p)
 
     start(down);
 
-    LOGGER << "Motor will stop in " << seconds << " seconds" << NL;
+    rolling_seconds = (int)seconds;
+    rolling_started = millis();
 
     MotorStopTimer.StartOnce(seconds * 1000);
+
+    LOGGER << "Motor will stop in " << seconds << " seconds" << NL;
 
     required_position = (TP_UNKNOWN == st_tris_position) ? p : TP_UNKNOWN;
     st_tris_position  = p;
@@ -494,8 +503,99 @@ void Motor::PowerOff()
     set_power(false);
 }
 //------------------------------------------------------
+static String get_state_text()
+{
+    State state = gbl_State;
+
+    switch (state)
+    {
+        case Ready:         return "Ready";
+        case Manual:        return "Powered OFF";
+
+        case BusyUp:
+        case BusyDown:      
+        {
+            char text[32];
+            int delta_seconds = rolling_seconds - ((millis() - rolling_started) / 1000);
+            sprintf(text, "Rolling %s for %d seconds", (state == BusyUp ? "UP" : "DOWN"), delta_seconds);
+
+            return text;
+        }
+    }
+
+    return "?";
+}
+//------------------------------------------------------
+static String processor(const String& var)
+{
+    if (var != "STATE")
+    {
+        LOGGER << "Required var: " << var << NL;
+        return "";
+    }
+
+    required_position = st_tris_position = TP_UNKNOWN;
+
+    return get_state_text();
+}
+//------------------------------------------------------
 void Motor::AddWebServices(AsyncWebServer& server)
 {
+    static const char* MAIN_URL = "/motor";
 
+    server.on(MAIN_URL, HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+
+        if (Error == gbl_State)
+        {
+            SendText("Under ERROR", *request, 200);
+            return;
+        }
+           
+        //if (Manual == gbl_State)
+        //{
+        //    SendText("In MANUAL mode", *request, 200);
+        //    return;
+        //}
+
+        //if (HalfManual == gbl_State)
+        //{
+        //    SendText("In HALF-MANUAL mode", *request, 200);
+        //    return;
+        //}
+
+        request->send(SPIFFS, "/motor.html", String(), false, processor);
+        });
+
+    server.on("/motor_up", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if(gbl_State == Ready)
+            set_current_position(TP_Top);
+        request->redirect(MAIN_URL);
+        });
+
+    server.on("/motor_down", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if (gbl_State == Ready)
+            set_current_position(TP_Btm);
+        request->redirect(MAIN_URL);
+        });
+
+    server.on("/motor_stop", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if (gbl_State != Ready)
+            stop();
+        request->redirect(MAIN_URL);
+        });
+
+    server.on("/motor_toggle_power", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        set_power(!pPowerSwitchRelay->Get());
+        request->redirect(MAIN_URL);
+        });
+
+    server.on("/motor_state", HTTP_GET, [](AsyncWebServerRequest *request) {
+        SendText(get_state_text().c_str(), *request);
+        });
 }
 //------------------------------------------------------
