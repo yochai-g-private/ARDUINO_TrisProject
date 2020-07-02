@@ -353,6 +353,8 @@ void Motor::Schedule()
     if (settings.states.manual)
         return;
 
+ return;
+
     Event events[8];
 
     memset(events, 0, sizeof(events));
@@ -547,6 +549,10 @@ void Motor::AddWebServices(AsyncWebServer& server)
         request->send(SPIFFS, "/Tris.gif", "image/gif");
         });
 
+    server.on("/icon.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/icon.gif", "image/gif");
+        });
+
     server.on(MAIN_URL, HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
 
@@ -571,31 +577,31 @@ void Motor::AddWebServices(AsyncWebServer& server)
         request->send(SPIFFS, "/motor.html", String(), false, processor);
         });
 
-    server.on("/motor_up", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_up", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         if(gbl_State == Ready)
             set_current_position(TP_Top);
-        request->redirect(MAIN_URL);
+        //request->redirect(MAIN_URL);
         });
 
-    server.on("/motor_down", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_down", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         if (gbl_State == Ready)
             set_current_position(TP_Btm);
-        request->redirect(MAIN_URL);
+        //request->redirect(MAIN_URL);
         });
 
-    server.on("/motor_stop", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_stop", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         if (gbl_State != Ready)
             stop();
-        request->redirect(MAIN_URL);
+        //request->redirect(MAIN_URL);
         });
 
-    server.on("/motor_toggle_power", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_toggle_power", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         set_power(!pPowerSwitchRelay->Get());
-        request->redirect(MAIN_URL);
+        //request->redirect(MAIN_URL);
         });
 
     server.on("/motor_state", HTTP_GET, [](AsyncWebServerRequest *request) {

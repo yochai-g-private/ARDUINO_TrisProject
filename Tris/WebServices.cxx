@@ -27,6 +27,11 @@ void InitializeWebServices()
 
     wifi_app.ConnectToWiFi();
 
+    // Route for root / web page
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/index.html", String(), false, NULL);
+        });
+
 #if _USE_DEMO_WEB_SERVICES
     add_demo_web_messages();
 #endif //_USE_DEMO_WEB_SERVICES
@@ -134,6 +139,17 @@ Html::Element& CreateField(const char* field, const String& value, Html::TextGen
     Html::Element& retval = *new Html::h3(GetElementValue(field, value).c_str());
     retval.AddAttribute(FieldIndentAttribute);
     return retval;
+}
+//------------------------------------------------------
+void SendInstantHtml(AsyncWebServerRequest& request, Html::Element& e)
+{
+    Html::html html;
+    //    html.SetTitle(#func_id);
+    html.SetMeta();
+    html.AddIcon("/icon.gif", "image/gif", "32x32");
+    html.AddStyleSheet("/style.css");
+    html.Body().AddChild(e);
+    SendElement(html, request);
 }
 //------------------------------------------------------
 

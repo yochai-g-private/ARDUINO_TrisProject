@@ -35,7 +35,7 @@ void setup()
 
     LedMgr::Test();
 
- //   Motor::TestRelays();
+    Motor::TestRelays();
 
     InitializeWebServices();
 
@@ -45,7 +45,7 @@ void setup()
         LOGGER << "State set to " << ((Manual == gbl_State) ? "MANUAL" : "READY") << NL;
     }
 
-    //Motor::Schedule();
+    Motor::Schedule();
 
     LOGGER << "Started!" << NL;
     //TRACING = true;

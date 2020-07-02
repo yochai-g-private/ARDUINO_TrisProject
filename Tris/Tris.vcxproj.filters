@@ -24,6 +24,9 @@
     <None Include="data\motor.html">
       <Filter>data</Filter>
     </None>
+    <None Include="data\index.html">
+      <Filter>data</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.Tris.vsarduino.h">

@@ -47,7 +47,7 @@ static Html::Element& getSettings(Html::TextGeneratorCtx& ctx)
     root.AddChild(getSettingsTimings(ctx));
     ctx.depth--;
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_Settings(AsyncWebServerRequest *request)
@@ -73,7 +73,7 @@ static Html::Element& getSettingsStates(Html::TextGeneratorCtx& ctx)
     root.AddChild(getSettingsStatesSunProtect(ctx));
     ctx.depth--;
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_SettingsStates(AsyncWebServerRequest *request)
@@ -146,7 +146,7 @@ static Html::Element& getSettingsStatesNightly(Html::TextGeneratorCtx& ctx)
     root.AddChild(CreateField("down", per_day_minutes(settings.states.nightly.down), ctx));
     root.AddChild(CreateField("up", (settings.states.nightly.up == Settings::SUNRISE) ? String("SUNRISE") : per_day_minutes(settings.states.nightly.up), ctx));
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_SettingsStatesNightly(AsyncWebServerRequest *request)
@@ -193,7 +193,7 @@ static Html::Element& getSettingsStatesSunProtect(Html::TextGeneratorCtx& ctx)
     root.AddChild(CreateField("minutes_after_sun_rise", String((int)settings.states.sun_protect.minutes_after_sun_rise), ctx));
     root.AddChild(CreateField("duration_minutes", String((int)settings.states.sun_protect.duration_minutes), ctx));
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_SettingsStatesSunProtect(AsyncWebServerRequest *request)
@@ -222,7 +222,7 @@ static Html::Element& getSettingsTimings(Html::TextGeneratorCtx& ctx)
     root.AddChild(getSettingsTimingsDown(ctx));
     ctx.depth--;
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_SettingsTimings(AsyncWebServerRequest *request)
@@ -247,7 +247,7 @@ static Html::Element& getSettingsTimingsUp(Html::TextGeneratorCtx& ctx)
 
     addTimings(root, settings.timings.up, ctx);
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_SettingsTimingsUp(AsyncWebServerRequest *request)
@@ -272,7 +272,7 @@ static Html::Element& getSettingsTimingsDown(Html::TextGeneratorCtx& ctx)
 
     addTimings(root, settings.timings.down, ctx);
 
-    return root;
+    return _root;
 }
 //------------------------------------------------------
 static void WS_SettingsTimingsDown(AsyncWebServerRequest *request)

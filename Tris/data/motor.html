@@ -3,19 +3,19 @@
 <head>
     <title>TRIS Motor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="data:,">
+    <link rel="icon" href="/icon.gif" type="image/gif" sizes="32x32">
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body onload="OnLoad()">
     <h1>Motor</h1>
     <p id="STATE"><strong>%STATE%</strong></p><br>
     <p>
-        <a id="UP" hidden>  <button class="button button_GREEN"    onclick="window.location.href = '/motor_up';">UP</button></a><br>
-        <a id="STOP" hidden><button class="button button_RED"      onclick="window.location.href = '/motor_stop';">STOP</button></a><br>
-        <a id="DOWN" hidden><button class="button button_BLUE"     onclick="window.location.href = '/motor_down';">DOWN</button></a><br>
+        <a id="UP" hidden>  <button class="button button_GREEN"    onclick="OnUP()">UP</button></a><br>
+        <a id="STOP" hidden><button class="button button_RED"      onclick="OnSTOP()">STOP</button></a><br>
+        <a id="DOWN" hidden><button class="button button_BLUE"     onclick="OnDOWN()">DOWN</button></a><br>
     </p>
     <a>
-        <div id="btn-bg" onclick="window.location.href='/motor_toggle_power'">
+        <div id="btn-bg" onclick="OnPOWER()">
             <div id="btn-highlight"></div>
             <div id="btn-ring">
                 <div id="ring-line"></div>
@@ -48,6 +48,29 @@
 
     function OnLoad() {
         OnStateChanged();
+    }
+
+    function send_post(url) {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("POST", url, true);
+        xhttp.send();
+
+    }
+
+    function OnUP() {
+        send_post("/motor_up");
+    }
+
+    function OnSTOP() {
+        send_post("/motor_stop");
+    }
+
+    function OnDOWN() {
+        send_post("/motor_down");
+    }
+
+    function OnPOWER() {
+        send_post("/motor_toggle_power");
     }
 
     setInterval(function () {

@@ -124,3 +124,11 @@ p {
     border-right: 3px solid #52555d;
     border-left: 3px solid #2d3036;
 }
+
+div.hebrew {
+    text-align: right;
+}
+
+div.english {
+    text-align: left;
+}
