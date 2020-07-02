@@ -15,9 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Tris.ino" />
-    <None Include="data\demo.html">
-      <Filter>data</Filter>
-    </None>
     <None Include="data\style.css">
       <Filter>data</Filter>
     </None>

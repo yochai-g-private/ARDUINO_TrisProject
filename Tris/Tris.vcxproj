@@ -107,7 +107,6 @@
     <DebuggerFlavor>VisualMicroDebugger</DebuggerFlavor>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="data\demo.html" />
     <None Include="data\index.html" />
     <None Include="data\motor.html" />
     <None Include="data\style.css" />
