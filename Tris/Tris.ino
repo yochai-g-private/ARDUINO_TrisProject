@@ -35,7 +35,7 @@ void setup()
 
     LedMgr::Test();
 
-    Motor::TestRelays();
+    //Motor::TestRelays();
 
     InitializeWebServices();
 
@@ -45,10 +45,14 @@ void setup()
         LOGGER << "State set to " << ((Manual == gbl_State) ? "MANUAL" : "READY") << NL;
     }
 
+    Times test;
+    test.ParseDateAndTime("2020/07/04 23:30:00");
+    RTC::Set(FixTime(test));
+
+    TRACING = true;
     Motor::Schedule();
 
     LOGGER << "Started!" << NL;
-    //TRACING = true;
 }
 //-----------------------------------------------------------
 void loop()

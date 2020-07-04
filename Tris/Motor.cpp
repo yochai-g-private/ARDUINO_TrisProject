@@ -23,7 +23,7 @@ static DigitalOutputPin*    pPowerSwitchRelay,
                        *    pMotorSwitchRelay,
                        *    pMotorDirectionRelay;
 
-static void set_power(bool on);
+static void set_power(bool on, bool from_Shedule = false);
 static void set_current_position(TrisPosition p);
 
 static int              rolling_seconds;
@@ -69,7 +69,7 @@ void Motor::TestRelays()
 //------------------------------------------------------
 static void start(bool down)
 {
-    set_power(true);
+    //set_power(true);
 
     LOGGER << "Starting " << (down ? "DOWN" : "UP") << " motor" << NL;
 
@@ -103,18 +103,27 @@ static void stop()
     gbl_State = Ready;
 }
 //------------------------------------------------------
-static void set_power(bool on)
+static void set_power(bool on, bool from_Shedule)
 {
     if (pPowerSwitchRelay->Get() == on)
         return;
 
     LOGGER << "Setting power " << (on ? "ON" : "OFF") << NL;
 
-    Scheduler::Cancel(next_position_handler, "OnPower");
+    bool canceled = Scheduler::Cancel(next_position_handler, "OnPower");
 
-    stop();
+    if (on)
+    {
+        if(!from_Shedule)
+            Motor::Schedule();
+    }
+    else
+    {
+        stop();
+        st_tris_position = required_position = TP_UNKNOWN;
+    }
+
     pPowerSwitchRelay->Set(on);
-    st_tris_position = required_position = TP_UNKNOWN;
 
     gbl_State = on ? Ready : Manual;
 }
@@ -169,6 +178,7 @@ static void set_current_position(TrisPosition p)
     double seconds;
 
     LOGGER << "Current position is " << GetPositionText(st_tris_position) << NL;
+    LOGGER << "Required position is " << GetPositionText(p) << NL;
 
     TrisPosition de_facto_p = p;
 
@@ -326,8 +336,13 @@ static void set_current_position(TrisPosition p)
 
     LOGGER << "Motor will stop in " << seconds << " seconds" << NL;
 
-    required_position = (TP_UNKNOWN == st_tris_position) ? p : TP_UNKNOWN;
-    st_tris_position  = p;
+    if (TP_UNKNOWN == st_tris_position)
+    {
+        required_position = p;
+        LOGGER << "Future position is " << GetPositionText(required_position) << NL;
+    }
+
+    st_tris_position  = de_facto_p;
 }
 //------------------------------------------------------
 static void set_motor_state(void* ctx)
@@ -342,8 +357,178 @@ static FixTime get_time_from_minutes(const DstTime& now, uint16_t minutes)
     Times times = now;
     times.m = minutes % MINUTES_PER_HOUR;
     times.h = (minutes - times.m) / MINUTES_PER_HOUR;
+    times.s = 0;
     return FixTime(DstTime(times));
 }
+//------------------------------------------------------
+struct SchedulingTimes
+{
+    FixTime now;
+    DstTime dst;
+    FixTime sun_rise;
+
+    Event events[8];
+
+    int max_idx;
+
+    TrisPosition current_position;
+    Event*       next_event;
+
+    void Schedule()
+    {
+        memset(events, 0, sizeof(events));
+
+        now = FixTime::Now();
+        dst = DstTime(now);
+        sun_rise = Sun::GetTodayLocalRiseTime();
+
+        if (settings.states.nightly.mode != NM_DISABLED)
+        {
+            LOGGER << "NIGHTLY is enabled" << NL;
+            FixTime down_time = get_time_from_minutes(dst, settings.states.nightly.down);
+
+            if (down_time < now)
+            {
+                // passee
+                events[0].t = down_time;
+                events[4].t = down_time + SECONDS_PER_DAY;
+            }
+            else
+            {
+                // in future
+                events[0].t = down_time - SECONDS_PER_DAY;
+                events[4].t = down_time;
+            }
+
+            events[0].p = events[4].p = (settings.states.nightly.mode == NM_AIR) ? TP_Air : TP_Btm;
+
+            events[0].d = events[4].d = (settings.states.nightly.mode == NM_AIR) ? "Nightly AIR" : "Nightly BOTTOM";
+
+            FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : get_time_from_minutes(dst, settings.states.nightly.up);
+
+            if (up_time < down_time)
+            {
+                // passee
+                events[1].t = up_time + SECONDS_PER_DAY;
+                events[5].t = up_time + (SECONDS_PER_DAY * 2);
+            }
+            else
+            {
+                // in future
+                events[1].t = up_time;
+                events[5].t = up_time + SECONDS_PER_DAY;
+            }
+
+            events[1].p = events[5].p = TP_Top;
+
+            events[1].d = events[5].d = "Nightly TOP";
+        }
+
+        //TRACE("settings.states.sun_protect.on");
+        if (settings.states.sun_protect.on)
+        {
+            LOGGER << "SUN PROTECT is enabled" << NL;
+            LOGGER << "Sunrise at " << DstTime(sun_rise).ToText() << NL;
+
+            FixTime down_time = sun_rise + (SECONDS_PER_MINUTE * (int)settings.states.sun_protect.minutes_after_sun_rise);
+
+            if (down_time < events[0].t)
+                down_time += SECONDS_PER_DAY;
+
+            events[2].t = down_time;
+            events[6].t = down_time + SECONDS_PER_DAY;
+
+            events[2].p = events[6].p = TP_Sun;
+            events[2].d = events[6].d = "Sun PROTECTED";
+
+            FixTime up_time = down_time + +(SECONDS_PER_MINUTE * (int)settings.states.sun_protect.duration_minutes);
+
+            events[3].t = up_time;
+            events[7].t = up_time + SECONDS_PER_DAY;
+
+            events[3].p = events[7].p = TP_Top;
+            events[3].d = events[7].d = "Sun UNPROTECTED";
+        }
+
+        max_idx = countof(events);
+
+        ListEvents("Before removing unset events");
+
+        // remove unset events
+        int idx;
+        for (idx = 0; idx < max_idx; idx++)
+        {
+            if (events[idx].p == TP_UNKNOWN)
+            {
+                max_idx--;
+
+                if (idx < max_idx)
+                {
+                    int shift_size = sizeof(*events) * (max_idx - idx);
+                    memcpy(events + idx, events + idx + 1, shift_size);
+                }
+
+                idx--;
+            }
+        }
+
+        ListEvents("Before removing overlapped events");
+
+        // remove overlapped events
+        for (idx = 0; idx < max_idx - 1; idx++)
+        {
+            if (events[idx].t > events[idx + 1].t)
+            {
+                max_idx--;
+                int shift_size = sizeof(*events) * (max_idx - idx);
+                memcpy(events + idx, events + idx + 1, shift_size);
+                idx--;
+            }
+        }
+
+        ListEvents("After removing unset events");
+
+        current_position = TP_Top;
+        next_event       = NULL;
+
+        for (idx = 0; idx < max_idx; idx++)
+        {
+            if (events[idx].t > now)
+            {
+                next_event = &events[idx];
+                break;
+            }
+
+            current_position = events[idx].p;
+        }
+
+        LOGGER << "Current position: " << GetPositionText(current_position) << NL;
+        if (next_event)
+        {
+            LOGGER << "Next scheduled  : " << GetPositionText(next_event->p) << " at " << DstTime(next_event->t).ToText() << NL;
+        }
+        else
+        {
+            if (max_idx)
+                ErrorMgr::Report("Bug in SchedulingTimes::Schedule()");
+        }  
+    }
+
+    void ListEvents(const char* title)
+    {
+        LOGGER << title << " : " << max_idx << " events scheduled:";
+
+        for (int idx = 0; idx < max_idx; idx++)
+        {
+            if (events[idx].p)
+                LOGGER << "\n>       " << DstTime(events[idx].t).ToText() << " : " << GetPositionText(events[idx].p) << " = " << events[idx].d;
+            else
+                LOGGER << "\n>       <NOT SET>";
+        }
+
+        LOGGER << NL;
+    }
+} scheduling_times;
 //------------------------------------------------------
 void Motor::Schedule()
 {
@@ -353,151 +538,18 @@ void Motor::Schedule()
     if (settings.states.manual)
         return;
 
- return;
+    LOGGER << "Scheduling..." << NL;
 
-    Event events[8];
+    scheduling_times.Schedule();
 
-    memset(events, 0, sizeof(events));
+    set_power(true, true);
 
-    DstTime dst = DstTime::Now();
-    FixTime now = FixTime(dst);
+    set_current_position(scheduling_times.current_position);
 
-    if (settings.states.nightly.mode != NM_DISABLED)
-    {
-        FixTime down_time = get_time_from_minutes(dst, settings.states.nightly.down);
+    Scheduler::Cancel(next_position_handler, "New scheduling cancels the old one");
 
-        if (down_time < now)
-        {
-            // passee
-            events[0].t = down_time;
-            events[4].t = down_time + SECONDS_PER_DAY;
-        }
-        else
-        {
-            // in future
-            events[0].t = down_time - SECONDS_PER_DAY;
-            events[4].t = down_time;
-        }
-
-        events[0].p =
-        events[4].p = (settings.states.nightly.mode == NM_AIR) ? TP_Air : TP_Btm;
-
-        events[0].d =
-        events[4].d = (settings.states.nightly.mode == NM_AIR) ? "Nightly AIR" : "Nightly BOTTOM";
-
-        FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? Sun::GetTodayLocalRiseTime() : get_time_from_minutes(dst, settings.states.nightly.up);
-
-        if (up_time < now)
-        {
-            // passee
-            events[1].t = up_time;
-            events[5].t = up_time + SECONDS_PER_DAY;
-        }
-        else
-        {
-            // in future
-            events[1].t = up_time - SECONDS_PER_DAY;
-            events[5].t = up_time;
-        }
-
-        events[1].p =
-        events[5].p = TP_Top;
-
-        events[1].d =
-        events[5].d = "Nightly TOP";
-    }
-
-    if (settings.states.sun_protect.on)
-    {
-        FixTime down_time = Sun::GetTodayLocalRiseTime() + (SECONDS_PER_MINUTE * (int)settings.states.sun_protect.minutes_after_sun_rise);
-
-        if (down_time < now)
-        {
-            // passee
-            events[2].t = down_time;
-            events[6].t = down_time + SECONDS_PER_DAY;
-        }
-        else
-        {
-            // in future
-            events[2].t = down_time - SECONDS_PER_DAY;
-            events[6].t = down_time;
-        }
-
-        events[2].p =
-        events[6].p = TP_Sun;
-
-        events[2].d =
-        events[6].d = "Sun PROTECTED";
-
-        FixTime up_time = down_time + +(SECONDS_PER_MINUTE * (int)settings.states.sun_protect.duration_minutes);
-
-        if (up_time < now)
-        {
-            // passee
-            events[3].t = up_time;
-            events[7].t = up_time + SECONDS_PER_DAY;
-        }
-        else
-        {
-            // in future
-            events[3].t = up_time - SECONDS_PER_DAY;
-            events[7].t = up_time;
-        }
-
-        events[3].p =
-        events[7].p = TP_Top;
-
-        events[3].d =
-        events[7].d = "Sun UNPROTECTED";
-
-    }
-
-    int idx, max_idx;
-
-    for (idx = 0, max_idx = countof(events); idx < max_idx; idx++)
-    {
-        //  
-        if ((idx + 1 < max_idx)                     &&      // not the last one
-            (events[idx].p == TP_UNKNOWN        ||          // not set
-             (events[idx+1].p != TP_UNKNOWN &&              // next set
-              events[idx].t > events[idx+1].t)))            // next is earlier
-        {
-            memcpy(events + idx, 
-                   events + idx + 1, 
-                   sizeof(*events) * (max_idx - (idx + 1)));
-
-            idx--;
-            max_idx--;
-        }
-    }
-
-    Event* curr_event = NULL,
-         * next_event = NULL;
-
-    for (idx = 0; idx < max_idx; idx++)
-    {
-        if (events[idx].t < now)
-        {
-            curr_event = events + idx;
-        }
-        else
-        {
-            next_event = events + idx;
-            break;
-        }
-    }
-
-    if (curr_event)
-    {
-        set_current_position(curr_event->p);
-        static Event next = *next_event;
-        next_position_handler = Scheduler::Add(set_motor_state, &next.p, next.d, next.t);
-
-        return;
-    }
-
-    set_current_position(TP_Top);
+    if(scheduling_times.next_event)
+        next_position_handler = Scheduler::Add(set_motor_state, &scheduling_times.next_event->p, scheduling_times.next_event->d, scheduling_times.next_event->t);
 }
 //------------------------------------------------------
 void Motor::PowerOff()
@@ -536,7 +588,7 @@ static String processor(const String& var)
         return "";
     }
 
-    required_position = st_tris_position = TP_UNKNOWN;
+    //required_position = st_tris_position = TP_UNKNOWN;
 
     return get_state_text();
 }
@@ -544,14 +596,6 @@ static String processor(const String& var)
 void Motor::AddWebServices(AsyncWebServer& server)
 {
     static const char* MAIN_URL = "/motor";
-
-    server.on("/Tris.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/Tris.gif", "image/gif");
-        });
-
-    server.on("/icon.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/icon.gif", "image/gif");
-        });
 
     server.on(MAIN_URL, HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;

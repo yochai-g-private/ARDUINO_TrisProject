@@ -32,6 +32,19 @@ void InitializeWebServices()
         request->send(SPIFFS, "/index.html", String(), false, NULL);
         });
 
+    // Route to load style.css file
+    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/style.css", "text/css");
+        });
+
+    server.on("/Tris.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/Tris.gif", "image/gif");
+        });
+
+    server.on("/icon.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/icon.gif", "image/gif");
+        });
+
 #if _USE_DEMO_WEB_SERVICES
     add_demo_web_messages();
 #endif //_USE_DEMO_WEB_SERVICES
@@ -40,13 +53,43 @@ void InitializeWebServices()
     Motor::AddWebServices(server);
     ErrorMgr::AddWebServices(server);
 
-    server.on("/clock", HTTP_GET, WS_clock);
+    server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        request->send(SPIFFS, "/clock.html", String(), false, NULL);
+        });
+
+    server.on("/set_clock", HTTP_POST, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        String arg;
+        Times  times;
+        if (GetStringParam(*request, "now", arg))
+        {
+            const char* s = arg.c_str();
+            if (times.ParseDateAndTime(s))
+            {
+                DstTime now = times;
+                RTC::Set(FixTime(now));
+
+                LOGGER << "RTC set to " << s << NL;
+
+                Motor::Schedule();
+            }
+            else
+            {
+                LOGGER << "Invalid date&time " << s << NL;
+            }
+        }
+        else
+        {
+            LOGGER << "Argument 'now' not found" << NL;
+        } } );
 
     server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
-              Html::h1 root("Restarting in 10 seconds...");
-              SendElement(root, *request);
-              Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
-              });
+        LOGGER << request->url() << NL;
+        Html::h1 root("Restarting in 10 seconds...");
+        SendElement(root, *request);
+        Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
+        });
 
     server.onNotFound([](AsyncWebServerRequest *request) {
         if (request->url() == "/favicon.ico")    return;
@@ -146,8 +189,8 @@ void SendInstantHtml(AsyncWebServerRequest& request, Html::Element& e)
     Html::html html;
     //    html.SetTitle(#func_id);
     html.SetMeta();
-    html.AddIcon("/icon.gif", "image/gif", "32x32");
-    html.AddStyleSheet("/style.css");
+    html.AddIcon("icon.gif", "image/gif", "32x32");
+    html.AddStyleSheet("style.css");
     html.Body().AddChild(e);
     SendElement(html, request);
 }
@@ -202,11 +245,6 @@ static void add_demo_web_messages()
     // Route for root / web page
     server.on("/demo", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/demo.html", String(), false, processor);
-        });
-
-    // Route to load style.css file
-    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/style.css", "text/css");
         });
 
     // Route to set GPIO to HIGH
