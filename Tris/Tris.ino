@@ -45,11 +45,11 @@ void setup()
         LOGGER << "State set to " << ((Manual == gbl_State) ? "MANUAL" : "READY") << NL;
     }
 
-    Times test;
-    test.ParseDateAndTime("2020/07/04 23:30:00");
-    RTC::Set(FixTime(test));
+    //Times test;
+    //test.ParseDateAndTime("2020/07/05 05:38:00");
+    //RTC::Set(FixTime(test));
 
-    TRACING = true;
+    //TRACING = true;
     Motor::Schedule();
 
     LOGGER << "Started!" << NL;

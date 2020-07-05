@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Short settings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <link rel="icon" href="icon.gif" type="image/gif" sizes="32x32">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <h1>הגדרות תיפעוליות</h1><br>
+
+    <div class="hebrew">
+        <h2>
+            אוטומטי (בשליטת ארדוינו)
+            <label class="switch">
+                <input id="AUTO" type="checkbox" %AUTO%></input>
+                <span class="slider round"></span>
+            </label>
+        </h2>
+        <h2>
+            הורדה לילית
+            <label class="switch">
+                <input id="NIGHTLY" type="checkbox" %NIGHTLY%></input>
+                <span class="slider round"></span>
+            </label>
+        </h2><br>
+        <h2>
+            הגנה מפני השמש
+            <label class="switch">
+                <input id="SUN_PROTECT" type="checkbox" %SUN_PROTECT%></input>
+                <span class="slider round"></span>
+            </label>
+        </h2>
+        <h2>
+            שעון קיץ
+            <label class="switch">
+                <input id="DST" type="checkbox" %DST%></input>
+                <span class="slider round"></span>
+            </label>
+        </h2>
+    </div><br>
+    <a><button class="button button_BLUE" onclick="OnUPDATE()">עדכן</button></a>
+</body>
+<script>
+
+    function getParam(id) {
+        var checkbox = document.getElementById(id);
+        var val = checkbox.checked ? "1" : "0";
+        return id.concat("=").concat(val);
+    }
+
+    function OnUPDATE() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("POST", "/set_short_settings", true);
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+        var params =        getParam("AUTO").        concat("&").
+                     concat(getParam("NIGHTLY")).    concat("&").
+                     concat(getParam("SUN_PROTECT")).concat("&").
+                     concat(getParam("DST"));
+
+        xhttp.send(params);
+    }
+
+</script>
+</html>

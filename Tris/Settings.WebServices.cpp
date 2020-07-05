@@ -291,6 +291,53 @@ static void WS_SettingsTimingsDown(AsyncWebServerRequest *request)
     SendHtml(SettingsTimingsDown);
 }
 //------------------------------------------------------
+static String processor(const String& var)
+{
+    if (var == "AUTO")
+    {
+        return !settings.states.manual ? "checked" : "";
+    }
+
+    if (var == "NIGHTLY")
+    {
+        return settings.states.nightly.mode != NM_DISABLED ? "checked" : "";
+    }
+
+    if (var == "SUN_PROTECT")
+    {
+        return settings.states.sun_protect.on ? "checked" : "";
+    }
+
+    if (var == "DST")
+    {
+        return settings.states.DST ? "checked" : "";
+    }
+
+    return "?";
+}
+//------------------------------------------------------
+static void WS_SetShortSettings(AsyncWebServerRequest *request)
+{
+    LOGGER << request->url() << NL;
+    Settings temp = settings;
+
+    String arg;
+    
+    if (GetStringParam(*request, "AUTO", arg))
+        temp.states.manual = arg != "1";
+
+    if (GetStringParam(*request, "NIGHTLY", arg))
+        temp.states.nightly.mode = arg == "1" ? NM_ALL : NM_DISABLED;
+
+    if (GetStringParam(*request, "SUN_PROTECT", arg))
+        temp.states.sun_protect.on = arg == "1";
+
+    if (GetStringParam(*request, "DST", arg))
+        temp.states.DST = arg == "1";
+
+    Settings::Store(temp);
+}
+//------------------------------------------------------
 void Settings::AddWebServices(AsyncWebServer& server)
 {
     server.on("/settings/timings/up",         HTTP_GET, WS_SettingsTimingsUp);
@@ -300,5 +347,11 @@ void Settings::AddWebServices(AsyncWebServer& server)
     server.on("/settings/states/sun_protect", HTTP_GET, WS_SettingsStatesSunProtect);
     server.on("/settings/states",             HTTP_GET, WS_SettingsStates);
     server.on("/settings",                    HTTP_GET, WS_Settings);
+    server.on("/short_settings",              HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        request->send(SPIFFS, "/short_settings.html", String(), false, processor);
+        });
+    server.on("/set_short_settings", HTTP_POST, WS_SetShortSettings);
+
 }
 //------------------------------------------------------

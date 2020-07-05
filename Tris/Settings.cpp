@@ -67,8 +67,8 @@ namespace NYG
         //  Timings
             {
                 //all air sun
-                { 29,  5, 15 },                 // up
-                { 27, 23, 12 },                 // down
+                { 29.5,  5, 15 },                 // up
+                { 27.5, 23, 12 },                 // down
             }
 
     };

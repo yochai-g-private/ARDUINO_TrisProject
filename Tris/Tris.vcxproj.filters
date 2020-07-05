@@ -30,6 +30,12 @@
     <None Include="data\short_settings.html">
       <Filter>data</Filter>
     </None>
+    <None Include="data\motor_times.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\maintenance.html">
+      <Filter>data</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.Tris.vsarduino.h">

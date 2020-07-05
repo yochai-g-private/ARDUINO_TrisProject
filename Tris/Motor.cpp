@@ -1,4 +1,4 @@
-#include "Tris.h"
+﻿#include "Tris.h"
 #include "Motor.h"
 #include "Timer.h"
 #include "IOutput.h"
@@ -23,8 +23,8 @@ static DigitalOutputPin*    pPowerSwitchRelay,
                        *    pMotorSwitchRelay,
                        *    pMotorDirectionRelay;
 
-static void set_power(bool on, bool from_Shedule = false);
-static void set_current_position(TrisPosition p);
+static void set_power(bool on);
+static void set_current_position(TrisPosition p, bool manual = false);
 
 static int              rolling_seconds;
 static unsigned long    rolling_started;
@@ -69,7 +69,13 @@ void Motor::TestRelays()
 //------------------------------------------------------
 static void start(bool down)
 {
-    //set_power(true);
+    if (settings.states.manual)
+    {
+        LOGGER << "Motor starting " << (down ? "DOWN" : "UP") << " canceled doe to manual settings" << NL;
+        return;
+    }
+
+    set_power(true);
 
     LOGGER << "Starting " << (down ? "DOWN" : "UP") << " motor" << NL;
 
@@ -103,21 +109,14 @@ static void stop()
     gbl_State = Ready;
 }
 //------------------------------------------------------
-static void set_power(bool on, bool from_Shedule)
+static void set_power(bool on)
 {
     if (pPowerSwitchRelay->Get() == on)
         return;
 
     LOGGER << "Setting power " << (on ? "ON" : "OFF") << NL;
 
-    bool canceled = Scheduler::Cancel(next_position_handler, "OnPower");
-
-    if (on)
-    {
-        if(!from_Shedule)
-            Motor::Schedule();
-    }
-    else
+    if (!on)
     {
         stop();
         st_tris_position = required_position = TP_UNKNOWN;
@@ -167,7 +166,7 @@ static const char* GetPositionText(TrisPosition p)
     return "?";
 }
 //------------------------------------------------------
-static void set_current_position(TrisPosition p)
+static void set_current_position(TrisPosition p, bool manual)
 {
     if (st_tris_position == p)
         return;
@@ -247,7 +246,7 @@ static void set_current_position(TrisPosition p)
                 case TP_Btm:
                 {
                     down = true;
-                    seconds = settings.timings.down.all - settings.timings.down.air;
+                    seconds = 1 + settings.timings.down.all - settings.timings.down.air;
                     break;
                 }
 
@@ -259,7 +258,7 @@ static void set_current_position(TrisPosition p)
 
                 case TP_Top:
                 {
-                    seconds = settings.timings.up.all - settings.timings.up.air;
+                    seconds = 1 + settings.timings.up.all - settings.timings.up.air;
                     break;
                 }
             }
@@ -275,7 +274,7 @@ static void set_current_position(TrisPosition p)
             {
                 case TP_Btm:
                 {
-                    seconds = settings.timings.down.all - settings.timings.down.sun;
+                    seconds = 1 + settings.timings.down.all - settings.timings.down.sun;
                     break;
                 }
 
@@ -288,7 +287,7 @@ static void set_current_position(TrisPosition p)
                 case TP_Top:
                 {
                     down = false;
-                    seconds = settings.timings.up.all - settings.timings.up.sun;
+                    seconds = 1 + settings.timings.up.all - settings.timings.up.sun;
                     break;
                 }
             }
@@ -336,13 +335,17 @@ static void set_current_position(TrisPosition p)
 
     LOGGER << "Motor will stop in " << seconds << " seconds" << NL;
 
-    if (TP_UNKNOWN == st_tris_position)
+    if (de_facto_p == p)
+    {
+        required_position = TP_UNKNOWN;
+    }
+    else
     {
         required_position = p;
         LOGGER << "Future position is " << GetPositionText(required_position) << NL;
     }
 
-    st_tris_position  = de_facto_p;
+    st_tris_position  = (manual) ? TP_UNKNOWN : de_facto_p;
 }
 //------------------------------------------------------
 static void set_motor_state(void* ctx)
@@ -452,7 +455,7 @@ struct SchedulingTimes
 
         max_idx = countof(events);
 
-        ListEvents("Before removing unset events");
+        //ListEvents("Before removing unset events");
 
         // remove unset events
         int idx;
@@ -472,7 +475,7 @@ struct SchedulingTimes
             }
         }
 
-        ListEvents("Before removing overlapped events");
+        //ListEvents("Before removing overlapped events");
 
         // remove overlapped events
         for (idx = 0; idx < max_idx - 1; idx++)
@@ -486,7 +489,7 @@ struct SchedulingTimes
             }
         }
 
-        ListEvents("After removing unset events");
+        //ListEvents("After removing overlapped events");
 
         current_position = TP_Top;
         next_event       = NULL;
@@ -535,21 +538,20 @@ void Motor::Schedule()
     if (gbl_State == Error)
         return;
 
-    if (settings.states.manual)
-        return;
-
     LOGGER << "Scheduling..." << NL;
+
+    set_power(settings.states.manual == false);
 
     scheduling_times.Schedule();
 
-    set_power(true, true);
-
     set_current_position(scheduling_times.current_position);
 
-    Scheduler::Cancel(next_position_handler, "New scheduling cancels the old one");
+    Scheduler::Cancel(next_position_handler);
 
-    if(scheduling_times.next_event)
+    if (scheduling_times.next_event)
+    {
         next_position_handler = Scheduler::Add(set_motor_state, &scheduling_times.next_event->p, scheduling_times.next_event->d, scheduling_times.next_event->t);
+    }
 }
 //------------------------------------------------------
 void Motor::PowerOff()
@@ -559,6 +561,11 @@ void Motor::PowerOff()
 //------------------------------------------------------
 static String get_state_text()
 {
+    if (settings.states.manual)
+    {
+        return "MANUAL state";
+    }
+
     State state = gbl_State;
 
     switch (state)
@@ -580,17 +587,80 @@ static String get_state_text()
     return "?";
 }
 //------------------------------------------------------
+static String get_time(const FixTime& t)
+{
+    DstTime dst = t;
+    TimeText tt = dst.ToText();
+    tt.buffer[16] = 0;
+    return tt.buffer + 11;
+}
+//------------------------------------------------------
 static String processor(const String& var)
 {
-    if (var != "STATE")
+    if (var == "STATE")
+        return get_state_text();
+
+    String retval;
+
+    if (var == "S1")
     {
-        LOGGER << "Required var: " << var << NL;
-        return "";
+        retval = "מצב נוכחי: ";
+        String position;
+
+        switch (st_tris_position)
+        {
+            case TP_Top: position = "פתוח";                               break;
+            case TP_Sun: position = "פתוח חלקית (הגנה מפני השמש)";      break;
+            case TP_Air: position = "סגור עם מרוות איוורור";            break;
+            case TP_Btm: position = "סגור עד למטה";                      break;
+            default    : position = "בלתי ידוע";                         break;
+        }
+
+        retval += position;
+
+        return retval;
     }
 
-    //required_position = st_tris_position = TP_UNKNOWN;
+    if (var == "S2")
+    {
+        if (!scheduling_times.next_event || !Scheduler::IsScheduled(next_position_handler))
+            return "";
 
-    return get_state_text();
+        retval = "הפעולה הבאה: ";
+        String when = get_time(scheduling_times.next_event->t);
+        String action;
+
+        switch (scheduling_times.next_event->p)
+        {
+            case TP_Top: action = "פתיחה עד למעלה";                  break;
+            case TP_Sun: action = "פתיחה חלקית (הגנה מפני השמש)";   break;
+            case TP_Air: action = "הורדה עם מרוות איוורור";         break;
+            case TP_Btm: action = "הורדה עד למטה";                   break;
+            default    : action = "?";                                break;
+        }
+
+ //       retval = when + " - " + action;
+        retval += action + " בשעה " + when;
+
+        return retval;
+    }
+
+    if (var == "S3")
+    {
+        return retval;
+    }
+
+    if (var == "S4")
+    {
+        retval = "זריחה: ";
+
+        retval += get_time(scheduling_times.sun_rise);
+
+        return retval;
+    }
+
+
+    return "?";
 }
 //------------------------------------------------------
 void Motor::AddWebServices(AsyncWebServer& server)
@@ -606,17 +676,11 @@ void Motor::AddWebServices(AsyncWebServer& server)
             return;
         }
            
-        //if (Manual == gbl_State)
-        //{
-        //    SendText("In MANUAL mode", *request, 200);
-        //    return;
-        //}
-
-        //if (HalfManual == gbl_State)
-        //{
-        //    SendText("In HALF-MANUAL mode", *request, 200);
-        //    return;
-        //}
+        if (settings.states.manual)
+        {
+            SendText("MANUAL state", *request, 200);
+            return;
+        }
 
         request->send(SPIFFS, "/motor.html", String(), false, processor);
         });
@@ -624,32 +688,35 @@ void Motor::AddWebServices(AsyncWebServer& server)
     server.on("/motor_up", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         if(gbl_State == Ready)
-            set_current_position(TP_Top);
-        //request->redirect(MAIN_URL);
+            set_current_position(TP_Top, true);
         });
 
     server.on("/motor_down", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         if (gbl_State == Ready)
-            set_current_position(TP_Btm);
-        //request->redirect(MAIN_URL);
+            set_current_position(TP_Btm, true);
         });
 
     server.on("/motor_stop", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         if (gbl_State != Ready)
             stop();
-        //request->redirect(MAIN_URL);
         });
 
     server.on("/motor_toggle_power", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         set_power(!pPowerSwitchRelay->Get());
-        //request->redirect(MAIN_URL);
+        st_tris_position = TP_UNKNOWN;
         });
 
     server.on("/motor_state", HTTP_GET, [](AsyncWebServerRequest *request) {
         SendText(get_state_text().c_str(), *request);
         });
+
+    server.on("/motor_times", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        request->send(SPIFFS, "/motor_times.html", String(), false, processor);
+        });
+
 }
 //------------------------------------------------------

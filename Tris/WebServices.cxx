@@ -53,6 +53,11 @@ void InitializeWebServices()
     Motor::AddWebServices(server);
     ErrorMgr::AddWebServices(server);
 
+    server.on("/maintenance", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        request->send(SPIFFS, "/maintenance.html", String(), false, NULL);
+        });
+
     server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         request->send(SPIFFS, "/clock.html", String(), false, NULL);
