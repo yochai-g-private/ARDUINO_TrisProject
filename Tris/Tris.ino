@@ -14,7 +14,17 @@
 #include "TimeEx.h"
 #include "WebServices.h"
 #include "RTC.h"
+#include "Location.h"
 #include "Scheduler.h"
+#include "IInput.h"
+#include "Threshold.h"
+#include "StableInput.h"
+#include "Observer.h"
+
+static AnalogInputPin                               analog_button(BUTTON_PIN);
+static Threshold                                    threshold(analog_button, 500);
+static StableDigitalInput<5000, 10, millis>         button(threshold);
+static DigitalObserver                              button_observer(button);
 
 //-----------------------------------------------------------
 void setup()
@@ -60,6 +70,9 @@ void setup()
     //TRACING = true;
     Motor::Schedule();
 
+    // Consume the first button released event
+    button_observer.Get();
+
     LOGGER << "Started!" << NL;
 }
 //-----------------------------------------------------------
@@ -68,6 +81,18 @@ void loop()
     Scheduler::Proceed();
     LedMgr::OnLoop();
     Motor::OnLoop();
+
+    static unsigned long check_button;
+    unsigned long decisec = millis() / 100;
+
+    if (check_button != decisec)
+    {
+        check_button = decisec;
+
+        bool pressed;
+        if (button_observer.TestChanged(pressed) && !pressed)
+            Motor::TogglePower();
+    }
 }
 //-----------------------------------------------------------
 void StateMgr::operator = (State state)
@@ -97,3 +122,5 @@ StateMgr            StateMgr::instance;
 #include <FS.h>
 
 #include "WebServices.cxx"
+
+

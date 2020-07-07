@@ -44,6 +44,7 @@ void Motor::Initialize()
     #define MotorDirectionRelay     (*pMotorDirectionRelay)
 }
 
+static Timer                SetPowerOnTimer;
 static Timer                MotorStopTimer;
 static Scheduler::Handler   next_position_handler;
 
@@ -71,7 +72,7 @@ static void start(bool down)
 {
     if (settings.states.manual)
     {
-        LOGGER << "Motor starting " << (down ? "DOWN" : "UP") << " canceled doe to manual settings" << NL;
+        LOGGER << "Motor starting " << (down ? "DOWN" : "UP") << " canceled due to manual state" << NL;
         return;
     }
 
@@ -114,13 +115,16 @@ static void set_power(bool on)
     if (pPowerSwitchRelay->Get() == on)
         return;
 
-    LOGGER << "Setting power " << (on ? "ON" : "OFF") << NL;
-
     if (!on)
     {
         stop();
         st_tris_position = required_position = TP_UNKNOWN;
     }
+
+    if (settings.states.manual)
+        on = false;
+
+    LOGGER << "Setting power " << (on ? "ON" : "OFF") << NL;
 
     pPowerSwitchRelay->Set(on);
 
@@ -131,6 +135,11 @@ void Motor::OnLoop()
 {
     if (gbl_State == Error)
         return;
+
+    if (SetPowerOnTimer.Test())
+    {
+        set_power(true);
+    }
 
     if (MotorStopTimer.Test())
     {
@@ -559,9 +568,16 @@ void Motor::Schedule()
     if (gbl_State == Error)
         return;
 
+    if (settings.states.manual)
+    {
+        set_power(false);
+        Scheduler::Cancel(next_position_handler);
+        return;
+    }
+
     LOGGER << "Scheduling..." << NL;
 
-    set_power(settings.states.manual == false);
+    set_power(true);
 
     scheduling_times.Schedule();
 
@@ -577,7 +593,24 @@ void Motor::Schedule()
 //------------------------------------------------------
 void Motor::PowerOff()
 {
+    SetPowerOnTimer.Stop();
     set_power(false);
+}
+//------------------------------------------------------
+void Motor::TogglePower()
+{
+    bool is_on = pPowerSwitchRelay->Get();
+
+    if (is_on)
+    {
+        SetPowerOnTimer.StartOnce(1 * SECONDS_PER_MINUTE * 1000);
+    }
+    else
+    {
+        SetPowerOnTimer.Stop();
+    }
+
+    set_power(!is_on);
 }
 //------------------------------------------------------
 static String get_state_text()
@@ -739,6 +772,23 @@ static String get_position_and_state_text()
     return get_curpos_text() + get_state_text();
 }
 //------------------------------------------------------
+static bool action_disabled(AsyncWebServerRequest& request)
+{
+    if (Error == gbl_State)
+    {
+        SendText("Under ERROR", request, 200);
+        return true;
+    }
+
+    if (settings.states.manual)
+    {
+        SendText("MANUAL state", request, 200);
+        return true;
+    }
+
+    return false;
+}
+//------------------------------------------------------
 void Motor::AddWebServices(AsyncWebServer& server)
 {
     static const char* MAIN_URL = "/motor";
@@ -746,17 +796,7 @@ void Motor::AddWebServices(AsyncWebServer& server)
     server.on(MAIN_URL, HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
 
-        if (Error == gbl_State)
-        {
-            SendText("Under ERROR", *request, 200);
-            return;
-        }
-           
-        if (settings.states.manual)
-        {
-            SendText("MANUAL state", *request, 200);
-            return;
-        }
+        if (action_disabled(*request))   return;
 
         request->send(SPIFFS, "/motor.html", String(), false, processor);
         });
@@ -781,7 +821,7 @@ void Motor::AddWebServices(AsyncWebServer& server)
 
     server.on("/motor_toggle_power", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        set_power(!pPowerSwitchRelay->Get());
+        TogglePower();
         st_tris_position = TP_UNKNOWN;
         });
 
@@ -795,16 +835,19 @@ void Motor::AddWebServices(AsyncWebServer& server)
 
     server.on("/motor_status", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
+        if (action_disabled(*request))   return;
         request->send(SPIFFS, "/motor_status.html", String(), false, processor);
         });
 
     server.on("/day_times", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
+        if (action_disabled(*request))   return;
         request->send(SPIFFS, "/day_times.html", String(), false, processor);
         });
 
     server.on("/positions", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
+        if (action_disabled(*request))   return;
         request->send(SPIFFS, "/positions.html", String(), false, processor);
         });
 

@@ -1,6 +1,7 @@
 #include "WebServices.h"
 #include "SmartHomeWiFiApp.h"
 #include "MicroController.h"
+#include "TimeEx.h"
 
 #define _USE_DEMO_WEB_SERVICES  1
 
@@ -27,8 +28,14 @@ void InitializeWebServices()
 
     wifi_app.ConnectToWiFi();
 
+    static String last_modified_s = LongTimeText(DstTime::GetBuildTime()).buffer;
+    const char* last_modified = last_modified_s.c_str();
+
+    LOGGER << "Date-Modified set to " << last_modified << NL;
+
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
         request->send(SPIFFS, "/index.html", String(), false, NULL);
         });
 
@@ -37,10 +44,13 @@ void InitializeWebServices()
         request->send(SPIFFS, "/style.css", "text/css");
         });
 
+//    server.serveStatic("/Tris.gif", SPIFFS, "/").setLastModified(last_modified);
+//    server.serveStatic("/", SPIFFS, "/").setLastModified(last_modified);
     server.on("/Tris.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/Tris.gif", "image/gif");
         });
 
+//    server.serveStatic("/icon.gif", SPIFFS, "/").setLastModified(last_modified);
     server.on("/icon.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/icon.gif", "image/gif");
         });

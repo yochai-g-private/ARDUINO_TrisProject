@@ -16,4 +16,6 @@ struct Motor
     static void AddWebServices(AsyncWebServer& server);
 
     static void PowerOff();
+
+    static void TogglePower();
 };

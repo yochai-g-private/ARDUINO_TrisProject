@@ -60,14 +60,14 @@ namespace NYG
         {
             false,                          // manual;
             { NM_ALL, 0, 0xFFFF },          // nightly;
-            { true,  60, 60 },              // sun_protect;
+            { true,  45, 70 },              // sun_protect;
             true,                           // DST;
         },
 
         //  Timings
             {
                 //all air sun
-                { 29.5,  4, 18 },                 // up
+                { 29.5,  4, 17 },                 // up
                 { 27.5, 22, 11 },                 // down
             }
 
