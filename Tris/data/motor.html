@@ -11,9 +11,9 @@
     <h1>הפעלה ידנית</h1>
     <p id="STATE"><strong>%STATE%</strong></p><br>
     <p>
-        <a id="UP" hidden>  <button class="button button_GREEN"    onclick="OnUP()">UP</button></a><br>
-        <a id="STOP" hidden><button class="button button_RED"      onclick="OnSTOP()">STOP</button></a><br>
-        <a id="DOWN" hidden><button class="button button_BLUE"     onclick="OnDOWN()">DOWN</button></a><br>
+        <a id="UP">  <button class="button button_GREEN"    onclick="OnUP()">UP</button></a><br>
+        <a id="STOP"><button class="button button_RED"      onclick="OnSTOP()">STOP</button></a><br>
+        <a id="DOWN"><button class="button button_BLUE"     onclick="OnDOWN()">DOWN</button></a><br>
     </p>
     <a>
         <div id="btn-bg" onclick="OnPOWER()">
@@ -31,20 +31,24 @@
         var down = document.getElementById("DOWN");
         var stop = document.getElementById("STOP");
         if (state.innerText == "Ready") {
-            stop.style.display = "none";
-            up.style.display = "block";
-            down.style.display = "block";
+            //alert("READY");
+            stop.style.visibility = "hidden";
+            up.style.visibility = "visible";
+            down.style.visibility = "visible";
         }
         else if (state.innerText.startsWith("Rolling")) {
-            stop.style.display = "block";
-            up.style.display = "none";
-            down.style.display = "none";
+            //alert("ROLLING");
+            stop.style.visibility = "visible";
+            up.style.visibility = "hidden";
+            down.style.visibility = "hidden";
         }
         else if (state.innerText == "Powered OFF") {
-            stop.style.display = "none";
-            up.style.display = "none";
-            down.style.display = "none";
+            //alert("OFF");
+            stop.style.visibility = "hidden";
+            up.style.visibility = "hidden";
+            down.style.visibility = "hidden";
         }
+        //else alert("???????????????");
     }
 
     function OnLoad() {
@@ -79,10 +83,8 @@
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 var state = document.getElementById("STATE");
-                var changed = state.innerText != this.responseText;
                 state.innerText = this.responseText;
-                if (changed)
-                    OnStateChanged();
+                OnStateChanged();
             }
         };
         xhttp.open("GET", "/motor_state", true);

@@ -108,10 +108,12 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="data\clock.html" />
+    <None Include="data\day_times.html" />
     <None Include="data\index.html" />
     <None Include="data\maintenance.html" />
     <None Include="data\motor.html" />
-    <None Include="data\motor_times.html" />
+    <None Include="data\motor_status.html" />
+    <None Include="data\positions.html" />
     <None Include="data\short_settings.html" />
     <None Include="data\style.css" />
     <None Include="Tris.ino">

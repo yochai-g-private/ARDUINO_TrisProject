@@ -7,42 +7,64 @@
     <link rel="icon" href="icon.gif" type="image/gif" sizes="32x32">
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
-<body>
+<body onload="OnLoad()">
     <h1>הגדרות תיפעוליות</h1><br>
 
     <div class="hebrew">
         <h2>
             אוטומטי (בשליטת ארדוינו)
             <label class="switch">
-                <input id="AUTO" type="checkbox" %AUTO%></input>
+                <input id="AUTO" type="checkbox" %AUTO%>
                 <span class="slider round"></span>
             </label>
-        </h2>
+        </h2><br>
         <h2>
             הורדה לילית
             <label class="switch">
-                <input id="NIGHTLY" type="checkbox" %NIGHTLY%></input>
+                <input id="NIGHTLY" type="checkbox" %NIGHTLY% onclick="OnNightly()">
+                <span class="slider round"></span>
+            </label>
+        </h2>
+        <h2 id="AIRFUL_CB">
+            להשאיר פתח איוורור
+            <label class="switch">
+                <input id="AIRFUL" type="checkbox" %AIRFUL%>
                 <span class="slider round"></span>
             </label>
         </h2><br>
         <h2>
             הגנה מפני השמש
             <label class="switch">
-                <input id="SUN_PROTECT" type="checkbox" %SUN_PROTECT%></input>
+                <input id="SUN_PROTECT" type="checkbox" %SUN_PROTECT%>
                 <span class="slider round"></span>
             </label>
-        </h2>
+        </h2><br>
         <h2>
             שעון קיץ
             <label class="switch">
-                <input id="DST" type="checkbox" %DST%></input>
+                <input id="DST" type="checkbox" %DST%>
                 <span class="slider round"></span>
             </label>
         </h2>
     </div><br>
-    <a><button class="button button_BLUE" onclick="OnUPDATE()">עדכן</button></a>
+    <a><button class="button button_BLUE" onclick="OnUPDATE()">שמור</button></a>
 </body>
 <script>
+
+    function OnNightly() {
+        var NIGHTLY = document.getElementById("NIGHTLY");
+        var AIRFUL = document.getElementById("AIRFUL_CB");
+
+        if (NIGHTLY.checked == true) {
+            AIRFUL.style.visibility = "visible";
+        } else {
+            AIRFUL.style.visibility = "hidden";
+        }
+    }
+
+    function OnLoad() {
+        OnNightly();
+    }
 
     function getParam(id) {
         var checkbox = document.getElementById(id);
@@ -57,6 +79,7 @@
 
         var params =        getParam("AUTO").        concat("&").
                      concat(getParam("NIGHTLY")).    concat("&").
+                     concat(getParam("AIRFUL")).     concat("&").
                      concat(getParam("SUN_PROTECT")).concat("&").
                      concat(getParam("DST"));
 

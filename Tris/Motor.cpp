@@ -369,9 +369,10 @@ struct SchedulingTimes
     FixTime now;
     DstTime dst;
     FixTime sun_rise;
+    FixTime sun_set;
 
     Event events[8];
-
+    int day_first_event_idx;
     int max_idx;
 
     TrisPosition current_position;
@@ -383,14 +384,15 @@ struct SchedulingTimes
 
         now = FixTime::Now();
         dst = DstTime(now);
-        sun_rise = Sun::GetTodayLocalRiseTime();
+
+        Sun::GetTodayLocalRiseSetTimes(sun_rise, sun_set);
 
         if (settings.states.nightly.mode != NM_DISABLED)
         {
             LOGGER << "NIGHTLY is enabled" << NL;
             FixTime down_time = get_time_from_minutes(dst, settings.states.nightly.down);
 
-            if (down_time < now)
+            if (down_time <= now)
             {
                 // passee
                 events[0].t = down_time;
@@ -514,7 +516,26 @@ struct SchedulingTimes
         {
             if (max_idx)
                 ErrorMgr::Report("Bug in SchedulingTimes::Schedule()");
-        }  
+        }
+
+        // Set the first event of the day
+        Times tm  = dst;
+        day_t day = tm.D;
+
+        day_first_event_idx = 778;
+
+        for (idx = 0; idx < max_idx; idx++)
+        {
+            DstTime event_dst = events[idx].t;
+            Times   event_tm  = event_dst;
+            day_t   event_day = event_tm.D;
+
+            if (day == event_day)
+            {
+                day_first_event_idx = idx;
+                break;
+            }
+        }
     }
 
     void ListEvents(const char* title)
@@ -595,6 +616,57 @@ static String get_time(const FixTime& t)
     return tt.buffer + 11;
 }
 //------------------------------------------------------
+static String get_curpos_text()
+{
+    switch (st_tris_position)
+    {
+        case TP_Top: return "TOP";
+        case TP_Sun: return "SUN";
+        case TP_Air: return "AIR";
+        case TP_Btm: return "BTM";
+    }
+    
+    return "???";
+}
+//------------------------------------------------------
+static String get_position_description(TrisPosition p)
+{
+    switch (p)
+    {
+        case TP_Top: return "פתוח";                         
+        case TP_Sun: return "פתוח מוגן שמש)";
+        case TP_Air: return "סגור עם מרווח איוורור";       
+        case TP_Btm: return "סגור עד למטה";                
+    }
+
+    return "בלתי ידוע";                       
+}
+//------------------------------------------------------
+static String get_action_description(TrisPosition p)
+{
+    switch (p)
+    {
+        case TP_Top: return "פתיחה";                 
+        case TP_Sun: return "פתיחה מוגנת שמש";  
+        case TP_Air: return "סגירה עם מרווח איוורור";        
+        case TP_Btm: return "סגירה עד למטה";                  
+    }
+
+    return "?";
+}
+//------------------------------------------------------
+String get_day_event(int idx)
+{
+    idx += scheduling_times.day_first_event_idx;
+    if (idx >= scheduling_times.max_idx)
+        return "";
+
+    String when         = get_time(scheduling_times.events[idx].t);
+    String description  = get_action_description(scheduling_times.events[idx].p);
+
+    return when + " : " + description;
+}
+//------------------------------------------------------
 static String processor(const String& var)
 {
     if (var == "STATE")
@@ -602,65 +674,69 @@ static String processor(const String& var)
 
     String retval;
 
-    if (var == "S1")
+    if (var == "CURRENT_POSITION")
     {
         retval = "מצב נוכחי: ";
-        String position;
-
-        switch (st_tris_position)
-        {
-            case TP_Top: position = "פתוח";                               break;
-            case TP_Sun: position = "פתוח חלקית (הגנה מפני השמש)";      break;
-            case TP_Air: position = "סגור עם מרוות איוורור";            break;
-            case TP_Btm: position = "סגור עד למטה";                      break;
-            default    : position = "בלתי ידוע";                         break;
-        }
-
-        retval += position;
+        retval += get_position_description(st_tris_position);
 
         return retval;
     }
 
-    if (var == "S2")
+    if (var == "NEXT_EVENT")
     {
         if (!scheduling_times.next_event || !Scheduler::IsScheduled(next_position_handler))
             return "";
 
         retval = "הפעולה הבאה: ";
         String when = get_time(scheduling_times.next_event->t);
-        String action;
+        String description = get_action_description(scheduling_times.next_event->p);
 
-        switch (scheduling_times.next_event->p)
-        {
-            case TP_Top: action = "פתיחה עד למעלה";                  break;
-            case TP_Sun: action = "פתיחה חלקית (הגנה מפני השמש)";   break;
-            case TP_Air: action = "הורדה עם מרוות איוורור";         break;
-            case TP_Btm: action = "הורדה עד למטה";                   break;
-            default    : action = "?";                                break;
-        }
-
- //       retval = when + " - " + action;
-        retval += action + " בשעה " + when;
+        retval += description + " בשעה " + when;
 
         return retval;
     }
 
-    if (var == "S3")
+    if (var == "CURPOS")
     {
-        return retval;
+        return get_curpos_text();
     }
 
-    if (var == "S4")
+    if (var == "SUNRISE")
     {
-        retval = "זריחה: ";
-
-        retval += get_time(scheduling_times.sun_rise);
-
-        return retval;
+        return get_time(scheduling_times.sun_rise);
     }
 
+    if (var == "SUNSET")
+    {
+        return get_time(scheduling_times.sun_set);
+    }
+
+    if (var == "EVENT_1")
+    {
+        return get_day_event(0);
+    }
+
+    if (var == "EVENT_2")
+    {
+        return get_day_event(1);
+    }
+
+    if (var == "EVENT_3")
+    {
+        return get_day_event(2);
+    }
+
+    if (var == "EVENT_4")
+    {
+        return get_day_event(3);
+    }
 
     return "?";
+}
+//------------------------------------------------------
+static String get_position_and_state_text()
+{
+    return get_curpos_text() + get_state_text();
 }
 //------------------------------------------------------
 void Motor::AddWebServices(AsyncWebServer& server)
@@ -713,9 +789,44 @@ void Motor::AddWebServices(AsyncWebServer& server)
         SendText(get_state_text().c_str(), *request);
         });
 
-    server.on("/motor_times", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_position_and_state", HTTP_GET, [](AsyncWebServerRequest *request) {
+        SendText(get_position_and_state_text().c_str(), *request);
+        });
+
+    server.on("/motor_status", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        request->send(SPIFFS, "/motor_times.html", String(), false, processor);
+        request->send(SPIFFS, "/motor_status.html", String(), false, processor);
+        });
+
+    server.on("/day_times", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        request->send(SPIFFS, "/day_times.html", String(), false, processor);
+        });
+
+    server.on("/positions", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        request->send(SPIFFS, "/positions.html", String(), false, processor);
+        });
+
+    server.on("/motor_top", HTTP_POST, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if (gbl_State == Ready)
+            set_current_position(TP_Top);
+        });
+    server.on("/motor_sun", HTTP_POST, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if (gbl_State == Ready)
+            set_current_position(TP_Sun);
+        });
+    server.on("/motor_air", HTTP_POST, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if (gbl_State == Ready)
+            set_current_position(TP_Air);
+        });
+    server.on("/motor_btm", HTTP_POST, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        if (gbl_State == Ready)
+            set_current_position(TP_Btm);
         });
 
 }

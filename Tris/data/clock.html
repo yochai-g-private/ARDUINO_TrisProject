@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <link rel="icon" href="icon.gif" type="image/gif" sizes="32x32">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <h1>שעון</h1><br>
+
+    <canvas id="canvas" width="400" height="400" style="background-color:#333"></canvas><br>
+
+    <a><button class="button button_BLUE" onclick="OnUPDATE()">עדכן</button></a><br>
+
+    <script>
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        var radius = canvas.height / 2;
+        ctx.translate(radius, radius);
+        radius = radius * 0.90
+        setInterval(drawClock, 1000);
+
+        function drawClock() {
+            drawFace(ctx, radius);
+            drawNumbers(ctx, radius);
+            drawTime(ctx, radius);
+        }
+
+        function drawFace(ctx, radius) {
+            var grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
+            grad.addColorStop(0, '#333');
+            grad.addColorStop(0.5, 'white');
+            grad.addColorStop(1, '#333');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = radius * 0.1;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.1, 0, 2 * Math.PI);
+            ctx.fillStyle = '#333';
+            ctx.fill();
+        }
+
+        function drawNumbers(ctx, radius) {
+            var ang;
+            var num;
+            ctx.font = radius * 0.15 + "px arial";
+            ctx.textBaseline = "middle";
+            ctx.textAlign = "center";
+            for (num = 1; num < 13; num++) {
+                ang = num * Math.PI / 6;
+                ctx.rotate(ang);
+                ctx.translate(0, -radius * 0.85);
+                ctx.rotate(-ang);
+                ctx.fillText(num.toString(), 0, 0);
+                ctx.rotate(ang);
+                ctx.translate(0, radius * 0.85);
+                ctx.rotate(-ang);
+            }
+        }
+
+        function drawTime(ctx, radius) {
+            var now = new Date();
+            var hour = now.getHours();
+            var minute = now.getMinutes();
+            var second = now.getSeconds();
+            //hour
+            hour = hour % 12;
+            hour = (hour * Math.PI / 6) +
+                (minute * Math.PI / (6 * 60)) +
+                (second * Math.PI / (360 * 60));
+            drawHand(ctx, hour, radius * 0.5, radius * 0.07);
+            //minute
+            minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
+            drawHand(ctx, minute, radius * 0.8, radius * 0.07);
+            // second
+            second = (second * Math.PI / 30);
+            drawHand(ctx, second, radius * 0.9, radius * 0.02);
+        }
+
+        function drawHand(ctx, pos, length, width) {
+            ctx.beginPath();
+            ctx.lineWidth = width;
+            ctx.lineCap = "round";
+            ctx.moveTo(0, 0);
+            ctx.rotate(pos);
+            ctx.lineTo(0, -length);
+            ctx.stroke();
+            ctx.rotate(-pos);
+        }
+
+        Date.prototype.yyyymmdd = function () {
+            var yyyy = this.getFullYear();
+            var mm = this.getMonth() < 9 ? "0" + (this.getMonth() + 1) : (this.getMonth() + 1); // getMonth() is zero-based
+            var dd = this.getDate() < 10 ? "0" + this.getDate() : this.getDate();
+            return "".concat(yyyy).concat("/").concat(mm).concat("/").concat(dd);
+        };
+
+        Date.prototype.yyyymmddhhmm = function () {
+            var yyyymmdd = this.yyyymmdd();
+            var hh = this.getHours() < 10 ? "0" + this.getHours() : this.getHours();
+            var min = this.getMinutes() < 10 ? "0" + this.getMinutes() : this.getMinutes();
+            return "".concat(yyyymmdd).concat(" ").concat(hh).concat(":").concat(min);
+        };
+
+        Date.prototype.yyyymmddhhmmss = function () {
+            var yyyymmddhhmm = this.yyyymmddhhmm();
+            var ss = this.getSeconds() < 10 ? "0" + this.getSeconds() : this.getSeconds();
+            return "".concat(yyyymmddhhmm).concat(":").concat(ss);
+        };
+
+        function OnUPDATE() {
+            var now = new Date();
+            var date_string = now.yyyymmddhhmmss();
+            var param = "now=".concat(date_string);
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", "/set_clock", true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhttp.send(param);
+
+        }
+
+    </script>
+
+</body>
+<script>
+</script>
+</html>

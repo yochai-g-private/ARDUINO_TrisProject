@@ -20,6 +20,9 @@
 void setup()
 {
     Logger::Initialize();
+
+    Settings::WriteApplicationInfoToLog();
+
     Motor::Initialize();
 
     bool RTC_ok = RTC::Begin();
@@ -45,10 +48,15 @@ void setup()
         LOGGER << "State set to " << ((Manual == gbl_State) ? "MANUAL" : "READY") << NL;
     }
 
-    //Times test;
-    //test.ParseDateAndTime("2020/07/05 05:38:00");
-    //RTC::Set(FixTime(test));
+#define DEBUG_SCHEDULER     0
 
+#if DEBUG_SCHEDULER
+    Times test;
+    //test.ParseDateAndTime("2020/07/05 05:38:00");
+    test.ParseDateAndTime("2020/07/05 23:59:00");
+    DstTime dst = test;
+    RTC::Set(FixTime(dst));
+#endif
     //TRACING = true;
     Motor::Schedule();
 

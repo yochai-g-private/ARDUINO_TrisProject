@@ -54,21 +54,21 @@ namespace NYG
     Settings Settings::defaults =
     {
         "TRIS",                             // name
-        0,                                  // version
+        1,                                  // version
 
         // States
         {
-            true,                           // manual;
-            { NM_DISABLED, 0, 0xFFFF },     // nightly;
-            { false, 60, 60 },              // sun_protect;
-            false,                          // DST;
+            false,                          // manual;
+            { NM_ALL, 0, 0xFFFF },          // nightly;
+            { true,  60, 60 },              // sun_protect;
+            true,                           // DST;
         },
 
         //  Timings
             {
                 //all air sun
-                { 29.5,  5, 15 },                 // up
-                { 27.5, 23, 12 },                 // down
+                { 29.5,  4, 18 },                 // up
+                { 27.5, 22, 11 },                 // down
             }
 
     };

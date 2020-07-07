@@ -54,6 +54,11 @@ namespace NYG
 
         enum { SUNRISE = 0xFFFF };
 
+        static void WriteApplicationInfoToLog()
+        {
+            _LOGGER << "Application: " << defaults.name << NL;
+            _LOGGER << "Version    : " << defaults.version << NL;
+        }
     private:
 
         static Settings defaults;

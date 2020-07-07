@@ -30,10 +30,16 @@
     <None Include="data\short_settings.html">
       <Filter>data</Filter>
     </None>
-    <None Include="data\motor_times.html">
+    <None Include="data\maintenance.html">
       <Filter>data</Filter>
     </None>
-    <None Include="data\maintenance.html">
+    <None Include="data\positions.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\motor_status.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\day_times.html">
       <Filter>data</Filter>
     </None>
   </ItemGroup>

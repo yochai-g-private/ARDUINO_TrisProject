@@ -8,43 +8,37 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body onload="OnLoad()">
-    <h1>הפעלה ידנית</h1>
+    <h1>שינוי מצב</h1>
     <p id="STATE"><strong>%STATE%</strong></p><br>
     <p>
-        <a id="UP" hidden>  <button class="button button_GREEN"    onclick="OnUP()">UP</button></a><br>
-        <a id="STOP" hidden><button class="button button_RED"      onclick="OnSTOP()">STOP</button></a><br>
-        <a id="DOWN" hidden><button class="button button_BLUE"     onclick="OnDOWN()">DOWN</button></a><br>
+        <a id="TOP" ><button class="button button_TOP" onclick="OnTOP()">פתוח</button></a><br>
+        <a id="SUN" ><button class="button button_SUN" onclick="OnSUN()">מגן שמש</button></a><br><br>
+        <a id="AIR" ><button class="button button_AIR" onclick="OnAIR()">מאוורר</button></a><br>
+        <a id="BTM" ><button class="button button_BTM" onclick="OnBTM()">סגור</button></a><br>
     </p>
-    <a>
-        <div id="btn-bg" onclick="OnPOWER()">
-            <div id="btn-highlight"></div>
-            <div id="btn-ring">
-                <div id="ring-line"></div>
-            </div>
-        </div>
-    </a>
+    <p id="CURPOS" hidden>%CURPOS%</p>
 </body>
 <script>
+
+    function displayElement(id, curpos, visible, blink_on) {
+        var elem = document.getElementById(id);
+        if (id == curpos)
+            elem.style.visibility = blink_on;
+        else
+            elem.style.visibility = visible;
+    }
+
     function OnStateChanged() {
         var state = document.getElementById("STATE");
-        var up = document.getElementById("UP");
-        var down = document.getElementById("DOWN");
-        var stop = document.getElementById("STOP");
-        if (state.innerText == "Ready") {
-            stop.style.display = "none";
-            up.style.display = "block";
-            down.style.display = "block";
-        }
-        else if (state.innerText.startsWith("Rolling")) {
-            stop.style.display = "block";
-            up.style.display = "none";
-            down.style.display = "none";
-        }
-        else if (state.innerText == "Powered OFF") {
-            stop.style.display = "none";
-            up.style.display = "none";
-            down.style.display = "none";
-        }
+        var curpos = document.getElementById("CURPOS").innerText;
+        var visible = (state.innerText == "Ready") ? "visible" : "hidden";
+        var now = new Date();
+        var blink_on = now.getSeconds() % 2 ? "visible" : "hidden";
+
+        displayElement("TOP", curpos, visible, blink_on);
+        displayElement("SUN", curpos, visible, blink_on);
+        displayElement("AIR", curpos, visible, blink_on);
+        displayElement("BTM", curpos, visible, blink_on);
     }
 
     function OnLoad() {
@@ -58,34 +52,34 @@
 
     }
 
-    function OnUP() {
-        send_post("/motor_up");
+    function OnTOP() {
+        send_post("/motor_top");
     }
 
-    function OnSTOP() {
-        send_post("/motor_stop");
+    function OnSUN() {
+        send_post("/motor_sun");
     }
 
-    function OnDOWN() {
-        send_post("/motor_down");
+    function OnAIR() {
+        send_post("/motor_air");
     }
 
-    function OnPOWER() {
-        send_post("/motor_toggle_power");
+    function OnBTM() {
+        send_post("/motor_btm");
     }
 
     setInterval(function () {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                var state = document.getElementById("STATE");
-                var changed = state.innerText != this.responseText;
-                state.innerText = this.responseText;
-                if (changed)
-                    OnStateChanged();
+                var curpos = document.getElementById("CURPOS");
+                var state  = document.getElementById("STATE");
+                curpos.innerText = this.responseText.substring(0,3);
+                state.innerText  = this.responseText.substring(3);
+                OnStateChanged();
             }
         };
-        xhttp.open("GET", "/motor_state", true);
+        xhttp.open("GET", "/motor_position_and_state", true);
         xhttp.send();
       }, 1000 ) ;
 </script>

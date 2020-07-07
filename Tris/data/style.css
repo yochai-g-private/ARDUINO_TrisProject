@@ -109,9 +109,6 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
-
-
-
 .button_GREEN {
     background-color: #006400
 }
@@ -121,6 +118,22 @@ input:checked + .slider:before {
 }
 
 .button_BLUE {
+}
+
+.button_TOP {
+    background-color: #35be1a;
+}
+
+.button_SUN {
+    background-color: #ad790d;
+}
+
+.button_AIR {
+    background-color: #0c3c94;
+}
+
+.button_BTM {
+    background-color: #252c3b;
 }
 
 #power-text {

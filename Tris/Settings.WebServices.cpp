@@ -258,7 +258,7 @@ static void WS_SettingsTimingsUp(AsyncWebServerRequest *request)
 
     double d;
     GET_DOUBLE_PARAM(all, 15, 60, d, timings.up);
-    GET_DOUBLE_PARAM(air, 5,  10, d, timings.up);
+    GET_DOUBLE_PARAM(air, 2,  12, d, timings.up);
     GET_DOUBLE_PARAM(sun, 10, 30, d, timings.up);
 
     Settings::Store(temp);
@@ -283,7 +283,7 @@ static void WS_SettingsTimingsDown(AsyncWebServerRequest *request)
 
     double d;
     GET_DOUBLE_PARAM(all, 15, 60, d, timings.down);
-    GET_DOUBLE_PARAM(air, 5,  10, d, timings.down);
+    GET_DOUBLE_PARAM(air, 18, 28, d, timings.down);
     GET_DOUBLE_PARAM(sun, 10, 30, d, timings.down);
 
     Settings::Store(temp);
@@ -301,6 +301,11 @@ static String processor(const String& var)
     if (var == "NIGHTLY")
     {
         return settings.states.nightly.mode != NM_DISABLED ? "checked" : "";
+    }
+
+    if (var == "AIRFUL")
+    {
+        return settings.states.nightly.mode == NM_AIR ? "checked" : "";
     }
 
     if (var == "SUN_PROTECT")
@@ -323,17 +328,25 @@ static void WS_SetShortSettings(AsyncWebServerRequest *request)
 
     String arg;
     
-    if (GetStringParam(*request, "AUTO", arg))
-        temp.states.manual = arg != "1";
+    GetStringParam(*request, "AUTO", arg);
+    temp.states.manual = arg != "1";
 
-    if (GetStringParam(*request, "NIGHTLY", arg))
-        temp.states.nightly.mode = arg == "1" ? NM_ALL : NM_DISABLED;
+    GetStringParam(*request, "NIGHTLY", arg);
+    if (arg == "1")
+    {
+        GetStringParam(*request, "AIRFUL", arg);
+        temp.states.nightly.mode = arg == "1" ? NM_AIR : NM_ALL;
+    }
+    else
+    {
+        temp.states.nightly.mode = NM_DISABLED;
+    }
 
-    if (GetStringParam(*request, "SUN_PROTECT", arg))
-        temp.states.sun_protect.on = arg == "1";
+    GetStringParam(*request, "SUN_PROTECT", arg);
+    temp.states.sun_protect.on = arg == "1";
 
-    if (GetStringParam(*request, "DST", arg))
-        temp.states.DST = arg == "1";
+    GetStringParam(*request, "DST", arg);
+    temp.states.DST = arg == "1";
 
     Settings::Store(temp);
 }
