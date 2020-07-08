@@ -9,20 +9,24 @@
 </head>
 <body onload="OnLoad()">
     <h1>הפעלה ידנית</h1>
+
+    <h2 id="ACTION_DISABLED" hidden>%ACTION_DISABLED%</h2>
+    <div class="popup">
+        <span class="popuptext" id="POPUP"></span>
+    </div>
+
     <p id="STATE"><strong>%STATE%</strong></p><br>
     <p>
-        <a id="UP">  <button class="button button_GREEN"    onclick="OnUP()">UP</button></a><br>
-        <a id="STOP"><button class="button button_RED"      onclick="OnSTOP()">STOP</button></a><br>
-        <a id="DOWN"><button class="button button_BLUE"     onclick="OnDOWN()">DOWN</button></a><br>
+        <a id="UP">  <button class="button button_GREEN" onclick="OnUP()">UP</button></a><br>
+        <a id="STOP"><button class="button button_RED" onclick="OnSTOP()">STOP</button></a><br>
+        <a id="DOWN"><button class="button button_BLUE" onclick="OnDOWN()">DOWN</button></a><br>
     </p>
-    <a>
         <div id="btn-bg" onclick="OnPOWER()">
             <div id="btn-highlight"></div>
             <div id="btn-ring">
                 <div id="ring-line"></div>
             </div>
         </div>
-    </a>
 </body>
 <script>
     function OnStateChanged() {
@@ -51,11 +55,43 @@
         //else alert("???????????????");
     }
 
+    function disableAll() {
+        var inputs = document.getElementsByTagName("input");
+        for (var i = 0; i < inputs.length; i++) {
+            inputs[i].disabled = true;
+        }
+        var selects = document.getElementsByTagName("select");
+        for (var i = 0; i < selects.length; i++) {
+            selects[i].disabled = true;
+        }
+        var textareas = document.getElementsByTagName("textarea");
+        for (var i = 0; i < textareas.length; i++) {
+            textareas[i].disabled = true;
+        }
+        var buttons = document.getElementsByTagName("button");
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].disabled = true;
+        }
+    }
+
     function OnLoad() {
+        var action_disabled = document.getElementById("ACTION_DISABLED");
+
+        if (action_disabled.innerText != "") {
+            disableAll();
+            var popup = document.getElementById("POPUP");
+            popup.innerText = action_disabled.innerText;
+            popup.classList.toggle("show");
+            disableAll();
+        }
+
         OnStateChanged();
     }
 
     function send_post(url) {
+        if (document.getElementById("ACTION_DISABLED").innerText != "")
+            return;
+
         var xhttp = new XMLHttpRequest();
         xhttp.open("POST", url, true);
         xhttp.send();

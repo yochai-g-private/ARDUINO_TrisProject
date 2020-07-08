@@ -3,7 +3,7 @@
 #include "MicroController.h"
 #include "TimeEx.h"
 
-#define _USE_DEMO_WEB_SERVICES  1
+#define _USE_DEMO_WEB_SERVICES  0
 
 #if _USE_DEMO_WEB_SERVICES
 static void add_demo_web_messages();
@@ -33,27 +33,17 @@ void InitializeWebServices()
 
     LOGGER << "Date-Modified set to " << last_modified << NL;
 
+    AsyncStaticWebHandler* handler;
+
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         request->send(SPIFFS, "/index.html", String(), false, NULL);
         });
 
-    // Route to load style.css file
-    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/style.css", "text/css");
-        });
-
-//    server.serveStatic("/Tris.gif", SPIFFS, "/").setLastModified(last_modified);
-//    server.serveStatic("/", SPIFFS, "/").setLastModified(last_modified);
-    server.on("/Tris.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/Tris.gif", "image/gif");
-        });
-
-//    server.serveStatic("/icon.gif", SPIFFS, "/").setLastModified(last_modified);
-    server.on("/icon.gif", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/icon.gif", "image/gif");
-        });
+    server.serveStatic("/style.css", SPIFFS, "/style.css").setLastModified(last_modified);
+    server.serveStatic("/Tris.gif",  SPIFFS, "/Tris.gif") .setLastModified(last_modified);
+    server.serveStatic("/icon.gif",  SPIFFS, "/icon.gif") .setLastModified(last_modified);
 
 #if _USE_DEMO_WEB_SERVICES
     add_demo_web_messages();

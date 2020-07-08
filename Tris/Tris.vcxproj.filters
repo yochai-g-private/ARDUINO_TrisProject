@@ -18,9 +18,6 @@
     <None Include="data\style.css">
       <Filter>data</Filter>
     </None>
-    <None Include="data\motor.html">
-      <Filter>data</Filter>
-    </None>
     <None Include="data\index.html">
       <Filter>data</Filter>
     </None>
@@ -33,13 +30,16 @@
     <None Include="data\maintenance.html">
       <Filter>data</Filter>
     </None>
-    <None Include="data\positions.html">
-      <Filter>data</Filter>
-    </None>
     <None Include="data\motor_status.html">
       <Filter>data</Filter>
     </None>
-    <None Include="data\day_times.html">
+    <None Include="data\motor_manual.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\motor_positions.html">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\motor_day_times.html">
       <Filter>data</Filter>
     </None>
   </ItemGroup>

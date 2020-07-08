@@ -418,6 +418,12 @@ struct SchedulingTimes
 
             events[0].d = events[4].d = (settings.states.nightly.mode == NM_AIR) ? "Nightly AIR" : "Nightly BOTTOM";
 
+            if (sun_rise < down_time)
+            {
+                // sun_rise of yesterday
+                Sun::GetLocalRiseSetTimes(sun_rise + SECONDS_PER_DAY, sun_rise, sun_set);
+            }
+
             FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : get_time_from_minutes(dst, settings.states.nightly.up);
 
             if (up_time < down_time)
@@ -688,16 +694,21 @@ static String get_action_description(TrisPosition p)
     return "?";
 }
 //------------------------------------------------------
-String get_day_event(int idx)
+String get_day_action(int idx)
+{
+    idx += scheduling_times.day_first_event_idx;
+    if (idx >= scheduling_times.max_idx)
+        return "";
+    return get_action_description(scheduling_times.events[idx].p);
+}
+//------------------------------------------------------
+String get_day_time(int idx)
 {
     idx += scheduling_times.day_first_event_idx;
     if (idx >= scheduling_times.max_idx)
         return "";
 
-    String when         = get_time(scheduling_times.events[idx].t);
-    String description  = get_action_description(scheduling_times.events[idx].p);
-
-    return when + " : " + description;
+   return get_time(scheduling_times.events[idx].t);
 }
 //------------------------------------------------------
 static String processor(const String& var)
@@ -744,24 +755,30 @@ static String processor(const String& var)
         return get_time(scheduling_times.sun_set);
     }
 
-    if (var == "EVENT_1")
-    {
-        return get_day_event(0);
-    }
+    #define EVENT(N)\
+        if (var == "A" #N)    { return get_day_action(N); }     \
+        if (var == "T" #N)    { return get_day_time(N); }
 
-    if (var == "EVENT_2")
-    {
-        return get_day_event(1);
-    }
+    EVENT(0);
+    EVENT(1);
+    EVENT(2);
+    EVENT(3);
 
-    if (var == "EVENT_3")
+    if (var == "ACTION_DISABLED")
     {
-        return get_day_event(2);
-    }
+        if (Error == gbl_State)
+        {
+            LOGGER << "popup: Under ERROR" << NL;
+            return "Under ERROR";
+        }
 
-    if (var == "EVENT_4")
-    {
-        return get_day_event(3);
+        if (settings.states.manual)
+        {
+            LOGGER << "popup: System is in MANUAL state" << NL;
+            return "System is in MANUAL state";
+        }
+
+        return "";
     }
 
     return "?";
@@ -772,33 +789,11 @@ static String get_position_and_state_text()
     return get_curpos_text() + get_state_text();
 }
 //------------------------------------------------------
-static bool action_disabled(AsyncWebServerRequest& request)
-{
-    if (Error == gbl_State)
-    {
-        SendText("Under ERROR", request, 200);
-        return true;
-    }
-
-    if (settings.states.manual)
-    {
-        SendText("MANUAL state", request, 200);
-        return true;
-    }
-
-    return false;
-}
-//------------------------------------------------------
 void Motor::AddWebServices(AsyncWebServer& server)
 {
-    static const char* MAIN_URL = "/motor";
-
-    server.on(MAIN_URL, HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_manual", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-
-        if (action_disabled(*request))   return;
-
-        request->send(SPIFFS, "/motor.html", String(), false, processor);
+        request->send(SPIFFS, "/motor_manual.html", String(), false, processor);
         });
 
     server.on("/motor_up", HTTP_POST, [](AsyncWebServerRequest *request) {
@@ -835,20 +830,20 @@ void Motor::AddWebServices(AsyncWebServer& server)
 
     server.on("/motor_status", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        if (action_disabled(*request))   return;
+//        if (action_disabled(*request))   return;
         request->send(SPIFFS, "/motor_status.html", String(), false, processor);
         });
 
-    server.on("/day_times", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_day_times", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        if (action_disabled(*request))   return;
-        request->send(SPIFFS, "/day_times.html", String(), false, processor);
+//        if (action_disabled(*request))   return;
+        request->send(SPIFFS, "/motor_day_times.html", String(), false, processor);
         });
 
-    server.on("/positions", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/motor_positions", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        if (action_disabled(*request))   return;
-        request->send(SPIFFS, "/positions.html", String(), false, processor);
+//        if (action_disabled(*request))   return;
+        request->send(SPIFFS, "/motor_positions.html", String(), false, processor);
         });
 
     server.on("/motor_top", HTTP_POST, [](AsyncWebServerRequest *request) {

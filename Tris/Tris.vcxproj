@@ -108,12 +108,12 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="data\clock.html" />
-    <None Include="data\day_times.html" />
+    <None Include="data\motor_day_times.html" />
     <None Include="data\index.html" />
     <None Include="data\maintenance.html" />
-    <None Include="data\motor.html" />
+    <None Include="data\motor_manual.html" />
     <None Include="data\motor_status.html" />
-    <None Include="data\positions.html" />
+    <None Include="data\motor_positions.html" />
     <None Include="data\short_settings.html" />
     <None Include="data\style.css" />
     <None Include="Tris.ino">
@@ -145,7 +145,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties config.Debug.customdebug_esp8266_nodemcuv2_debugger_type="universal" arduino.upload.port="COM14" VM_ADDITIONAL_PREPROC="_USE_LOGGER=1;_USE_TIME_EX=1;_USE_RTC=1;_USE_LOCATION=1;" />
+      <UserProperties config.Debug.customdebug_esp8266_nodemcuv2_debugger_type="universal" arduino.upload.port="COM5" VM_ADDITIONAL_PREPROC="_USE_LOGGER=1;_USE_TIME_EX=1;_USE_RTC=1;_USE_LOCATION=1;" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

@@ -113,6 +113,7 @@ void OnSettingsChanged()
 //-----------------------------------------------------------
 extern const char*	gbl_build_date = __DATE__;
 extern const char*	gbl_build_time = __TIME__;
+
 StateMgr            StateMgr::instance;
 
 #include <Hash.h>
@@ -121,6 +122,7 @@ StateMgr            StateMgr::instance;
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 
-#include "WebServices.cxx"
+static char stam = 3;
 
+#include "WebServices.cxx"
 
