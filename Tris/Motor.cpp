@@ -250,12 +250,14 @@ static void set_current_position(TrisPosition p, bool manual)
         {
             down = false;
 
+            #define ADDITIONLA_ROLLING_SECONDS  3
+
             switch (p)
             {
                 case TP_Btm:
                 {
                     down = true;
-                    seconds = 1 + settings.timings.down.all - settings.timings.down.air;
+                    seconds = ADDITIONLA_ROLLING_SECONDS + settings.timings.down.all - settings.timings.down.air;
                     break;
                 }
 
@@ -267,7 +269,7 @@ static void set_current_position(TrisPosition p, bool manual)
 
                 case TP_Top:
                 {
-                    seconds = 1 + settings.timings.up.all - settings.timings.up.air;
+                    seconds = ADDITIONLA_ROLLING_SECONDS + settings.timings.up.all - settings.timings.up.air;
                     break;
                 }
             }
@@ -283,7 +285,7 @@ static void set_current_position(TrisPosition p, bool manual)
             {
                 case TP_Btm:
                 {
-                    seconds = 1 + settings.timings.down.all - settings.timings.down.sun;
+                    seconds = ADDITIONLA_ROLLING_SECONDS + settings.timings.down.all - settings.timings.down.sun;
                     break;
                 }
 
@@ -296,7 +298,7 @@ static void set_current_position(TrisPosition p, bool manual)
                 case TP_Top:
                 {
                     down = false;
-                    seconds = 1 + settings.timings.up.all - settings.timings.up.sun;
+                    seconds = ADDITIONLA_ROLLING_SECONDS + settings.timings.up.all - settings.timings.up.sun;
                     break;
                 }
             }
@@ -717,6 +719,30 @@ String get_day_time(int idx)
    return get_time(scheduling_times.events[idx].t);
 }
 //------------------------------------------------------
+bool SetActionDisabled(const String& var, String& action_disabled_reason)
+{
+    if (var == "ACTION_DISABLED")
+    {
+        if (Error == gbl_State)
+        {
+            LOGGER << "popup: Under ERROR" << NL;
+            action_disabled_reason = "Under ERROR";
+        }
+        else
+        if (settings.states.manual)
+        {
+            LOGGER << "popup: System is in MANUAL state" << NL;
+            action_disabled_reason = "System is in MANUAL state";
+        }
+        else
+        action_disabled_reason = "";
+
+        return true;
+    }
+
+    return false;
+}
+//------------------------------------------------------
 static String processor(const String& var)
 {
     if (var == "STATE")
@@ -776,22 +802,7 @@ static String processor(const String& var)
     EVENT(2);
     EVENT(3);
 
-    if (var == "ACTION_DISABLED")
-    {
-        if (Error == gbl_State)
-        {
-            LOGGER << "popup: Under ERROR" << NL;
-            return "Under ERROR";
-        }
-
-        if (settings.states.manual)
-        {
-            LOGGER << "popup: System is in MANUAL state" << NL;
-            return "System is in MANUAL state";
-        }
-
-        return "";
-    }
+    CheckActionDisabled(var);
 
     return "?";
 }

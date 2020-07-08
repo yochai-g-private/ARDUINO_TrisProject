@@ -38,7 +38,7 @@ void InitializeWebServices()
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        request->send(SPIFFS, "/index.html", String(), false, NULL);
+        request->send(SPIFFS, "/index.html", String(), false, [](const String& var) { CheckActionDisabled(var); return String(""); });
         });
 
     server.serveStatic("/style.css", SPIFFS, "/style.css").setLastModified(last_modified);

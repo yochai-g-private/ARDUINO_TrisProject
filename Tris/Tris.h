@@ -69,3 +69,8 @@ const char* GetYesNo(const bool& b);
 #define GET_DOUBLE_PARAM(fld, min, max, val, parent_fld)            GET_NUMERIC_PARAM(Double, fld, min, max, val, parent_fld)
 #define GET_BOOL_PARAM(fld, val, parent_fld)                        if (GetBoolParam(*request, #fld, val))      temp.parent_fld.fld = val; else;
 
+bool SetActionDisabled(const String& var, String& action_disabled_reason);
+#define CheckActionDisabled(var)    \
+    String action_disabled_reason;\
+    if (SetActionDisabled(var, action_disabled_reason))\
+        return action_disabled_reason;;
