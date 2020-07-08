@@ -10,7 +10,7 @@
 <body onload="OnLoad()">
     <h1>הפעלה ידנית</h1>
 
-    <h2 id="ACTION_DISABLED" hidden>%ACTION_DISABLED%</h2>
+    <h2 id="ACTION_DISABLED" hidden>%ACTION_DISABLED%</h2><br>
     <div class="popup">
         <span class="popuptext" id="POPUP"></span>
     </div>
@@ -78,7 +78,6 @@
         var action_disabled = document.getElementById("ACTION_DISABLED");
 
         if (action_disabled.innerText != "") {
-            disableAll();
             var popup = document.getElementById("POPUP");
             popup.innerText = action_disabled.innerText;
             popup.classList.toggle("show");

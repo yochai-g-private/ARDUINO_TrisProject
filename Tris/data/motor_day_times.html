@@ -13,8 +13,13 @@
         }
     </style>
 </head>
-<body>
-    <h1>זמני היום</h1>
+<body onload="OnLoad()">
+    <h1>זמני היום</h1><br />
+    <h2 id="ACTION_DISABLED" hidden>%ACTION_DISABLED%</h2><br>
+    <div class="popup">
+        <span class="popuptext" id="POPUP"></span>
+    </div><br /><br />
+
     <div>
         <table class="center" style="width:100%; font-size:150%;">
             <tr>
@@ -73,4 +78,16 @@
     </div>
 
 </body>
+<script>
+    function OnLoad() {
+        var action_disabled = document.getElementById("ACTION_DISABLED");
+
+        if (action_disabled.innerText != "") {
+            var popup = document.getElementById("POPUP");
+            popup.innerText = action_disabled.innerText;
+            popup.classList.toggle("show");
+        }
+    }
+</script>
+
 </html>
