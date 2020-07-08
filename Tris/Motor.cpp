@@ -804,7 +804,7 @@ static String processor(const String& var)
 
     CheckActionDisabled(var);
 
-    return "?";
+    return "";
 }
 //------------------------------------------------------
 static String get_position_and_state_text()

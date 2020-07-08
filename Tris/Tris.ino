@@ -122,7 +122,7 @@ StateMgr            StateMgr::instance;
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 
-static char stam = 0;
+static char stam = 78;
 
 #include "WebServices.cxx"
 

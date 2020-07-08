@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <title>Clock</title>
@@ -6,23 +6,87 @@
     <meta charset="utf-8">
     <link rel="icon" href="icon.gif" type="image/gif" sizes="32x32">
     <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+        table.center {
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
 </head>
-<body>
-    <h1>שעון</h1><br>
-
-    <canvas id="canvas" width="400" height="400" style="background-color:#333"></canvas><br>
+<body onload="OnLoad()">
+    <h1>שעון</h1><br><br>
+	<h2 id="DST_TIME" hidden>%DST_TIME%</h2>
+	<div>
+        <table class="center">
+            <tr>
+                <th>ARDUINO
+                <th>
+                <th>versus
+                <th>
+                <th>LOCAL
+                <th>
+<tr>
+		<table>
+		<table class="center">
+            <tr>
+                <td align="center">
+					<canvas id="clk_1" width="200" height="200" style="background-color:transparent"></canvas>
+                <td align="center">
+					<canvas id="clk_2" width="200" height="200" style="background-color:transparent"></canvas>
+                <td>
+            <tr>
+		</table>
+	</div><br>
 
     <a><button class="button button_BLUE" onclick="OnUPDATE()">עדכן</button></a><br>
 
     <script>
-        var canvas = document.getElementById("canvas");
-        var ctx = canvas.getContext("2d");
-        var radius = canvas.height / 2;
-        ctx.translate(radius, radius);
-        radius = radius * 0.90
-        setInterval(drawClock, 1000);
+        var t_1;
+        var t_2;
+		
+        var clk_1;
+        var ctx_1;
+        var radius;
 
-        function drawClock() {
+        var clk_2;
+        var ctx_2;
+
+        function OnLoad() {
+            if (document.getElementById("DST_TIME").innerText == "%" + "DST_TIME" + "%") {
+                alert("Missing value of DST_TIME");
+                document.getElementById("DST_TIME").innerText = '2020/01/01 13:00:00';
+            }
+
+            clk_1 = document.getElementById("clk_1");
+            ctx_1 = clk_1.getContext("2d");
+            radius = clk_1.height / 2;
+            ctx_1.translate(radius, radius);
+
+            clk_2 = document.getElementById("clk_2");
+            ctx_2 = clk_2.getContext("2d");
+            ctx_2.translate(radius, radius);
+
+            radius = radius * 0.90;
+
+            updateClocks();
+
+            setInterval(drawClocks, 1000);
+        }
+
+        function updateClocks() {
+            t_1 = new Date(document.getElementById("DST_TIME").innerText);
+            t_2 = new Date();
+        }
+
+        function drawClocks() {
+			t_1.setSeconds(t_1.getSeconds() + 1);
+			t_2.setSeconds(t_2.getSeconds() + 1);
+			
+			drawClock(ctx_1);
+			drawClock(ctx_2);
+		}
+		
+        function drawClock(ctx) {
             drawFace(ctx, radius);
             drawNumbers(ctx, radius);
             drawTime(ctx, radius);
@@ -66,7 +130,8 @@
         }
 
         function drawTime(ctx, radius) {
-            var now = new Date();
+            var now = (ctx == ctx_1) ? t_1 : t_2;
+
             var hour = now.getHours();
             var minute = now.getMinutes();
             var second = now.getSeconds();
@@ -117,6 +182,7 @@
 
         function OnUPDATE() {
             var now = new Date();
+            //now.setSeconds(now.getSeconds() + 1);
             var date_string = now.yyyymmddhhmmss();
             var param = "now=".concat(date_string);
             var xhttp = new XMLHttpRequest();
@@ -124,8 +190,19 @@
             xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
             xhttp.send(param);
 
-        }
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var DST_TIME = document.getElementById("DST_TIME");
+                    DST_TIME.innerText = this.responseText;
+                    updateClocks();
+                }
+            };
 
+
+            xhttp.open("GET", "/get_clock", true);
+            xhttp.send();
+        }
     </script>
 
 </body>

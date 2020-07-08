@@ -318,7 +318,7 @@ static String processor(const String& var)
         return settings.states.DST ? "checked" : "";
     }
 
-    return "?";
+    return "";
 }
 //------------------------------------------------------
 static void WS_SetShortSettings(AsyncWebServerRequest *request)

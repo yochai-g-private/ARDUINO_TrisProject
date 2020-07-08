@@ -18,6 +18,13 @@ AsyncWebServer server(80);
 
 static void WS_clock(AsyncWebServerRequest *request);
 
+static String processor(const String& var) {
+    if (var == "DST_TIME")
+        return DstTime::Now().ToText().buffer;
+
+    return "";
+}
+
 void InitializeWebServices()
 {
     // Initialize SPIFFS
@@ -38,7 +45,7 @@ void InitializeWebServices()
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        request->send(SPIFFS, "/index.html", String(), false, [](const String& var) { CheckActionDisabled(var); return String(""); });
+        request->send(SPIFFS, "/index.html", String(), false, [](const String& var) { CheckActionDisabled(var); return var; });
         });
 
     server.serveStatic("/style.css", SPIFFS, "/style.css").setLastModified(last_modified);
@@ -60,7 +67,7 @@ void InitializeWebServices()
 
     server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
-        request->send(SPIFFS, "/clock.html", String(), false, NULL);
+        request->send(SPIFFS, "/clock.html", String(), false, processor);
         });
 
     server.on("/set_clock", HTTP_POST, [](AsyncWebServerRequest *request) {
@@ -88,6 +95,11 @@ void InitializeWebServices()
         {
             LOGGER << "Argument 'now' not found" << NL;
         } } );
+
+    server.on("/get_clock", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        SendText(DstTime::Now().ToText().buffer, *request);
+        });
 
     server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
@@ -227,7 +239,7 @@ String getPressure() {
 static String ledState;
 static bool led_ON = false;
 // Replaces placeholder with LED state value
-static String processor(const String& var) {
+static String xxxprocessor(const String& var) {
     Serial.println(var);
     if (var == "STATE") {
         ledState = led_ON ? "ON" : "OFF";
@@ -243,27 +255,29 @@ static String processor(const String& var) {
     else if (var == "PRESSURE") {
         return getPressure();
     }
+
+    return var;
 }
 
 static void add_demo_web_messages()
 {
     // Route for root / web page
     server.on("/demo", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/demo.html", String(), false, processor);
+        request->send(SPIFFS, "/demo.html", String(), false, xxxprocessor);
         });
 
     // Route to set GPIO to HIGH
     server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request) {
         //gitalWrite(ledPin, HIGH);
         led_ON = true;
-        request->send(SPIFFS, "/demo.html", String(), false, processor);
+        request->send(SPIFFS, "/demo.html", String(), false, xxxprocessor);
         });
 
     // Route to set GPIO to LOW
     server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request) {
         //gitalWrite(ledPin, LOW);
         led_ON = false;
-        request->send(SPIFFS, "/demo.html", String(), false, processor);
+        request->send(SPIFFS, "/demo.html", String(), false, xxxprocessor);
         });
 
     server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
