@@ -696,6 +696,9 @@ static String get_action_description(TrisPosition p)
 //------------------------------------------------------
 String get_day_action(int idx)
 {
+    if (settings.states.manual)
+        return "";
+
     idx += scheduling_times.day_first_event_idx;
     if (idx >= scheduling_times.max_idx)
         return "";
@@ -704,6 +707,9 @@ String get_day_action(int idx)
 //------------------------------------------------------
 String get_day_time(int idx)
 {
+    if (settings.states.manual)
+        return "";
+
     idx += scheduling_times.day_first_event_idx;
     if (idx >= scheduling_times.max_idx)
         return "";
@@ -747,11 +753,17 @@ static String processor(const String& var)
 
     if (var == "SUNRISE")
     {
+        if (settings.states.manual)
+            return "";
+
         return get_time(scheduling_times.sun_rise);
     }
 
     if (var == "SUNSET")
     {
+        if (settings.states.manual)
+            return "";
+
         return get_time(scheduling_times.sun_set);
     }
 
