@@ -76,6 +76,12 @@
         function updateClocks() {
             t_1 = new Date(document.getElementById("DST_TIME").innerText);
             t_2 = new Date();
+			// remove one second delta
+			var s_1 = t_1.getSeconds();
+			var s_2 = t_2.getSeconds();
+			var diff = (s_1 > s_2) ? s_1 - s_2 : s_2 - s_1;
+			if(diff == 1)
+				t_1 = t_2;
         }
 
         function drawClocks() {
