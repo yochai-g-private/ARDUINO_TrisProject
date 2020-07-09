@@ -68,7 +68,7 @@
 
             radius = radius * 0.90;
 
-            updateClocks();
+            refresh();
 
             setInterval(drawClocks, 1000);
         }
@@ -81,7 +81,7 @@
 			var s_2 = t_2.getSeconds();
 			var diff = (s_1 > s_2) ? s_1 - s_2 : s_2 - s_1;
 			if(diff == 1)
-				t_1 = t_2;
+				t_1.setSeconds(s_2);
         }
 
         function drawClocks() {
@@ -186,16 +186,8 @@
             return "".concat(yyyymmddhhmm).concat(":").concat(ss);
         };
 
-        function OnUPDATE() {
-            var now = new Date();
-            //now.setSeconds(now.getSeconds() + 1);
-            var date_string = now.yyyymmddhhmmss();
-            var param = "now=".concat(date_string);
-            var xhttp = new XMLHttpRequest();
-            xhttp.open("POST", "/set_clock", true);
-            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            xhttp.send(param);
-
+		function refresh()
+		{
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
@@ -203,11 +195,23 @@
                     DST_TIME.innerText = this.responseText;
                     updateClocks();
                 }
-            };
-
+			};
 
             xhttp.open("GET", "/get_clock", true);
             xhttp.send();
+		}
+		
+        function OnUPDATE() {
+            var now = new Date();
+            now.setSeconds(now.getSeconds() + 1);
+            var date_string = now.yyyymmddhhmmss();
+            var param = "now=".concat(date_string);
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", "/set_clock", true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhttp.send(param);
+
+			refresh();
         }
     </script>
 
