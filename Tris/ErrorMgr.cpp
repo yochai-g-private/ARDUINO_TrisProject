@@ -108,8 +108,9 @@ static void WS_Clean(AsyncWebServerRequest *request)
 //------------------------------------------------------
 void ErrorMgr::AddWebServices(AsyncWebServer& server)
 {
-    server.on("/errors", HTTP_GET, WS_Errors);
-    server.on("/errors/clean", HTTP_GET, WS_Clean);
-
+    //server.on("/errors", HTTP_GET, [](AsyncWebServerRequest *request) {
+    //    LOGGER << request->url() << NL;
+    //    request->send(SPIFFS, "/errors.html", String(), false, processor);
+    //    });
 }
 //------------------------------------------------------

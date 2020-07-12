@@ -60,7 +60,7 @@ namespace NYG
         {
             false,                          // manual;
             { NM_ALL, 0, 0xFFFF },          // nightly;
-            { true,  45, 70 },              // sun_protect;
+            { true,  30, 85 },              // sun_protect;
             true,                           // DST;
         },
 

@@ -48,7 +48,7 @@ void setup()
 
     LedMgr::Test();
 
-    //Motor::TestRelays();
+    Motor::TestRelays();
 
     InitializeWebServices();
 
