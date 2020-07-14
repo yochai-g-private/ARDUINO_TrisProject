@@ -366,15 +366,6 @@ static void set_motor_state(void* ctx)
     Motor::Schedule();
 }
 //------------------------------------------------------
-static FixTime get_time_from_minutes(const DstTime& now, uint16_t minutes)
-{
-    Times times = now;
-    times.m = minutes % MINUTES_PER_HOUR;
-    times.h = (minutes - times.m) / MINUTES_PER_HOUR;
-    times.s = 0;
-    return FixTime(DstTime(times));
-}
-//------------------------------------------------------
 struct SchedulingTimes
 {
     FixTime now;
@@ -401,7 +392,7 @@ struct SchedulingTimes
         if (settings.states.nightly.mode != NM_DISABLED)
         {
             LOGGER << "NIGHTLY is enabled" << NL;
-            FixTime down_time = get_time_from_minutes(dst, settings.states.nightly.down);
+            FixTime down_time = GetFromMinutes(dst, settings.states.nightly.down);
 
             if (down_time <= now)
             {
@@ -426,7 +417,7 @@ struct SchedulingTimes
                 Sun::GetLocalRiseSetTimes(sun_rise + SECONDS_PER_DAY, sun_rise, sun_set);
             }
 
-            FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : get_time_from_minutes(dst, settings.states.nightly.up);
+            FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : GetFromMinutes(dst, settings.states.nightly.up);
 
             if (up_time < down_time)
             {
