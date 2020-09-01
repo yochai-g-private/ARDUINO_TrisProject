@@ -586,7 +586,7 @@ void Motor::Schedule()
 
     if (scheduling_times.next_event)
     {
-        next_position_handler = Scheduler::Add(set_motor_state, &scheduling_times.next_event->p, scheduling_times.next_event->d, scheduling_times.next_event->t);
+        Scheduler::Add(&next_position_handler, set_motor_state, &scheduling_times.next_event->p, scheduling_times.next_event->d, scheduling_times.next_event->t);
     }
 }
 //------------------------------------------------------

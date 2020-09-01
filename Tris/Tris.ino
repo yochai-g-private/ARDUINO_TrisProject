@@ -20,6 +20,7 @@
 #include "Threshold.h"
 #include "StableInput.h"
 #include "Observer.h"
+#include "Html.h"
 
 static AnalogInputPin                               analog_button(BUTTON_PIN);
 static Threshold                                    threshold(analog_button, 500);

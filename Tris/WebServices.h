@@ -2,6 +2,7 @@
 
 #include <ESPAsyncWebServer.h>
 #include "AsyncWebServerEx.h""
+#include "Html.h"
 
 void InitializeWebServices();
 

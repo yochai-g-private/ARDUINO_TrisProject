@@ -105,7 +105,7 @@ void InitializeWebServices()
         LOGGER << request->url() << NL;
         Html::h1 root("Restarting in 10 seconds...");
         SendElement(root, *request);
-        Scheduler::AddInSeconds([](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
+        Scheduler::AddInSeconds(NULL, [](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
         });
 
     server.onNotFound([](AsyncWebServerRequest *request) {
