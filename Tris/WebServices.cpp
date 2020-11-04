@@ -1,7 +1,11 @@
+#include "Tris.h"
+#include "Motor.h"
 #include "WebServices.h"
 #include "SmartHomeWiFiApp.h"
 #include "MicroController.h"
 #include "TimeEx.h"
+#include "RTC.h"
+#include "Scheduler.h"
 
 #define _USE_DEMO_WEB_SERVICES  0
 
