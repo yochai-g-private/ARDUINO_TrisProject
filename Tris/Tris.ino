@@ -21,22 +21,32 @@
 #include "StableInput.h"
 #include "Observer.h"
 #include "Html.h"
+#include "MicroController.h"
+#include "SmartHomeWiFiApp.h"
+#include "OTA.h"
 
 static AnalogInputPin                               analog_button(BUTTON_PIN);
 static Threshold                                    threshold(analog_button, 500);
 static StableDigitalInput<5000, 10, millis>         button(threshold);
 static DigitalObserver                              button_observer(button);
 
+DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA, UNDER_DEVELOPMENT);
+
+static void dst_changed_restart(void*)
+{
+	MicroController::Restart();
+}
 //-----------------------------------------------------------
 void setup()
 {
     Logger::Initialize();
+    Settings::Load();
 
     Settings::WriteApplicationInfoToLog();
 
     Motor::Initialize();
 
-    bool RTC_ok = RTC::Begin();
+	bool RTC_ok = RTC::Begin();
 
     if (!RTC_ok)
     {
@@ -45,13 +55,56 @@ void setup()
 
     RTC::SetOnError(ErrorMgr::Report);
 
-    Settings::Load();
+	wifi_app.ConnectToWiFi();
 
-    LedMgr::Test();
+    InternetTime::Data internet_time;
 
-    Motor::TestRelays();
+	bool	internet_time_Ok;
+	FixTime now = InternetTime::Get(internet_time, internet_time_Ok);
 
-    InitializeWebServices();
+	if (now.IsValid())
+	{
+		if (RTC_ok)
+			RTC::Set(now);
+		else
+			FixTime::Set(now);
+	}
+
+	if (internet_time_Ok)
+	{
+		Settings temp = settings;
+		temp.internet_time = internet_time;
+		Settings::Store(temp);
+
+		now = FixTime::Now();
+
+		FixTime dst_change_time = (now < internet_time.dstStart) ? internet_time.dstStart :
+								  (now < internet_time.dstEnd)	 ? internet_time.dstEnd   :
+																   now.GetMidNight() + SECONDS_PER_DAY;
+
+		FixTime dst_change_restart_time = dst_change_time + ((uint32_t)12 * (uint32_t)SECONDS_PER_HOUR);
+
+		Scheduler::Add(NULL, dst_changed_restart, NULL, "DST Restart", dst_change_restart_time);
+	}
+	else if (now.IsValid())
+	{
+		FixTime mnt = now.GetMidNight();
+		mnt += (uint32_t)36 * (uint32_t)SECONDS_PER_HOUR;
+		Scheduler::Add(NULL, dst_changed_restart, NULL, "DST Retry Restart", mnt);
+	}
+
+	WiFi.disconnect();
+	wifi_app.ConnectToWiFi();
+	char OTA_NAME[16];
+	
+	sprintf(OTA_NAME, "TRIS v%d", VERSION);
+	OTA::Initialize(OTA_NAME);
+
+	InitializeWebServices();
+
+	LedMgr::Test();
+
+    //Motor::TestRelays();
 
     if (Error != gbl_State)
     {
@@ -79,7 +132,10 @@ void setup()
 //-----------------------------------------------------------
 void loop()
 {
-    Scheduler::Proceed();
+	if (OTA::OnLoop())
+		return;
+
+	Scheduler::Proceed();
     LedMgr::OnLoop();
     Motor::OnLoop();
 

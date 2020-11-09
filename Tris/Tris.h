@@ -2,6 +2,14 @@
 
 #include "NYG.h"
 
+#if 1
+    #define UNDER_DEVELOPMENT       true
+#else
+    #define UNDER_DEVELOPMENT       false
+#endif
+
+#define VERSION	2
+
 class AsyncWebServer;
 
 #include "Settings.h"

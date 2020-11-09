@@ -66,7 +66,7 @@ static Html::Element& getSettingsStates(Html::TextGeneratorCtx& ctx)
     SetRoot(States, "/settings/states");
 
     root.AddChild(CreateField("manual", GetYesNo(settings.states.manual), ctx));
-    root.AddChild(CreateField("DST", GetYesNo(settings.states.DST), ctx));
+    root.AddChild(CreateField("DST", GetYesNo(settings.internet_time.dst), ctx));
 
     ctx.depth++;
     root.AddChild(getSettingsStatesNightly(ctx));
@@ -84,7 +84,7 @@ static void WS_SettingsStates(AsyncWebServerRequest *request)
     bool b;
 
     GET_BOOL_PARAM(manual, b, states);
-    GET_BOOL_PARAM(DST, b, states);
+	if (GetBoolParam(*request, "DST", b))      temp.internet_time.dst = b;
 
     Settings::Store(temp);
 
@@ -315,7 +315,7 @@ static String processor(const String& var)
 
     if (var == "DST")
     {
-        return settings.states.DST ? "checked" : "";
+        return settings.internet_time.dst ? "checked" : "";
     }
 
     return "";
@@ -346,7 +346,7 @@ static void WS_SetShortSettings(AsyncWebServerRequest *request)
     temp.states.sun_protect.on = arg == "1";
 
     GetStringParam(*request, "DST", arg);
-    temp.states.DST = arg == "1";
+    temp.internet_time.dst = arg == "1";
 
     Settings::Store(temp);
 }

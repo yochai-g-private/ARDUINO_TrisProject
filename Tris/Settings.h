@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tris.h"
+#include "InternetTime.h"
 
 namespace NYG 
 {
@@ -35,7 +36,7 @@ namespace NYG
                             duration_minutes;
             }   sun_protect;
 
-            bool        DST;
+            bool        ___obsolete_DST;    // use internet_time.dst
         }   states;
 
         struct Timings
@@ -46,6 +47,8 @@ namespace NYG
                         sun;
             } up, down;
         }   timings;
+
+        InternetTime::Data internet_time;
 
         static void Load();
         static void Store(const NYG::Settings& temp);

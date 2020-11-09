@@ -14,9 +14,8 @@ static void add_demo_web_messages();
 #endif //_USE_DEMO_WEB_SERVICES
 
 // Replace with your network credentials
-const char* ssid = "HomeNet";	//"ESP8266_Demo";
-const char* password = "1357864200";	//"5708";
-DEFINE_SMART_HOME_WIFI_APP(Tris, WIFI_STA);
+//const char* ssid = "HomeNet";	//"ESP8266_Demo";
+//const char* password = "1357864200";	//"5708";
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
@@ -37,9 +36,7 @@ void InitializeWebServices()
         return;
     }
 
-    wifi_app.ConnectToWiFi();
-
-    static String last_modified_s = LongTimeText(DstTime::GetBuildTime()).buffer;
+	static String last_modified_s = LongTimeText(DstTime::GetBuildTime()).buffer;
     const char* last_modified = last_modified_s.c_str();
 
     LOGGER << "Date-Modified set to " << last_modified << NL;
@@ -178,7 +175,8 @@ static void WS_clock(AsyncWebServerRequest *request)
     Settings temp = settings;
     bool b;
 
-    GET_BOOL_PARAM(DST, b, states);
+//    GET_BOOL_PARAM(DST, b, states);
+	if (GetBoolParam(*request, "DST", b))      temp.internet_time.dst = b;
 
     Settings::Store(temp);
 
@@ -186,7 +184,7 @@ static void WS_clock(AsyncWebServerRequest *request)
     text += DstTime::NowToText();
     Html::h1 root(text);
 
-    root.AddChild(*new Html::h2(String("Daylight saving time: ") + GetYesNo(settings.states.DST)));
+    root.AddChild(*new Html::h2(String("Daylight saving time: ") + GetYesNo(settings.internet_time.dst)));
 
     SendElement(root, *request);
 }

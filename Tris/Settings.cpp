@@ -15,23 +15,38 @@ void  Settings::Load()
     EepromInput settings_input;
     settings_input >> settings;
 
-    if (memcmp(defaults.name, settings.name, sizeof(defaults.name)) || settings.version != defaults.version)
+	bool store_settings = true;
+
+    if (memcmp(defaults.name, settings.name, sizeof(defaults.name)))
     {
         settings = defaults;
-        EepromOutput settings_output;
-        settings_output << settings;
-
-        ErrorMgr::Clean();
-
-        LOGGER << "Settings written" << NL;
     }
-    else
+	else if (settings.version != defaults.version)
+	{
+		switch (settings.version)
+		{
+			case 1: settings.internet_time = defaults.internet_time;
+					break;
+		}
+	}
+	else
     {
+		store_settings = false;
         ErrorMgr::Load();
         LOGGER << "Settings OK" << NL;
     }
 
-    gbl_DST = settings.states.DST;
+	if (store_settings)
+	{
+		EepromOutput settings_output;
+		settings_output << settings;
+
+		ErrorMgr::Clean();
+
+		LOGGER << "Settings written" << NL;
+	}
+
+    gbl_DST = settings.internet_time.dst;
 }
 //------------------------------------------------------
 void  Settings::Store(const NYG::Settings& temp)
@@ -39,7 +54,7 @@ void  Settings::Store(const NYG::Settings& temp)
     if (memcmp(&settings, &temp, sizeof(temp)))
     {
         settings = temp;
-        gbl_DST = settings.states.DST;
+        gbl_DST = settings.internet_time.dst;
 
         EepromOutput settings_output;
         settings_output << temp;
@@ -54,7 +69,7 @@ namespace NYG
     Settings Settings::defaults =
     {
         "TRIS",                             // name
-        1,                                  // version
+		VERSION,                            // version
 
         // States
         {
@@ -65,11 +80,11 @@ namespace NYG
         },
 
         //  Timings
-            {
-                //all air sun
-                { 29.5,  4, 17 },                 // up
-                { 27.5, 22, 11 },                 // down
-            }
+        {
+            //all air sun
+            { 29.5,  4, 17 },                 // up
+            { 27.5, 22, 11 },                 // down
+        }
 
     };
 

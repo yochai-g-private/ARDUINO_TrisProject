@@ -16,6 +16,10 @@
 #define __ESP8266_esp8266__
 #define __ESP8266_ESP8266__
 #define _VMDEBUG 1
+#define _USE_OTA 1
+#define _USE_INTERNET_TIME 1
+#define _USE_NETWORK_TIME 1
+#define _USE_TIME_ZONE 1
 #define _USE_LOGGER 1
 #define _USE_TIME_EX 1
 #define _USE_RTC 1
