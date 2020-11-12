@@ -2,13 +2,7 @@
 
 #include "NYG.h"
 
-#if 1
-    #define UNDER_DEVELOPMENT       true
-#else
-    #define UNDER_DEVELOPMENT       false
-#endif
-
-#define VERSION	2
+#define VERSION	4
 
 class AsyncWebServer;
 

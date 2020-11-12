@@ -71,7 +71,35 @@ void InitializeWebServices()
         request->send(SPIFFS, "/clock.html", String(), false, processor);
         });
 
-    server.on("/set_clock", HTTP_POST, [](AsyncWebServerRequest *request) {
+	//server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request) {
+	//	LOGGER << request->url() << NL;
+	//	String ssid;
+	//	String pass;
+	//	String gateway_address_s;
+	//	IPAddress gateway_address;
+
+	//	if (GetStringParam(*request, "ssid",	ssid)				&&
+	//		GetStringParam(*request, "pass",	pass)				&&
+	//		GetStringParam(*request, "gateway", gateway_address_s)	&&
+	//		gateway_address.fromString(gateway_address_s))
+	//	{
+	//		Settings temp = settings;
+
+	//		temp.WIFI.Set(ssid.c_str(), pass.c_str(), gateway_address);
+	//		settings.Store(temp);
+
+	//		Html::h1 root("Restarting in 10 seconds...");
+	//		SendElement(root, *request);
+	//		Scheduler::AddInSeconds(NULL, [](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
+	//	} });
+	
+	AddInternetAccessWiFiURI(server, [](AsyncWebServerRequest& request, const IWiFiDef& def) {
+		Settings temp = settings;
+
+		temp.WIFI.Set(def.SSID(), def.PASS(), def.GATEWAY());
+		settings.Store(temp); });
+
+	server.on("/set_clock", HTTP_POST, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         String arg;
         Times  times;
@@ -100,6 +128,11 @@ void InitializeWebServices()
     server.on("/get_clock", HTTP_GET, [](AsyncWebServerRequest *request) {
         LOGGER << request->url() << NL;
         SendText(DstTime::Now().ToText().buffer, *request);
+        });
+
+    server.on("/version", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOGGER << request->url() << NL;
+        SendText(String((int)VERSION).c_str(), *request);
         });
 
     server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {

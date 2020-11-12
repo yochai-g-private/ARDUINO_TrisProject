@@ -1,7 +1,7 @@
 #include "Settings.h"
 
 #include "EepromIO.h"
-
+#include "SmartHomeWiFiAppDefaults.h"
 
 using namespace NYG;
 
@@ -19,13 +19,17 @@ void  Settings::Load()
 
     if (memcmp(defaults.name, settings.name, sizeof(defaults.name)))
     {
-        settings = defaults;
+        settings	  = defaults;
+		settings.WIFI = DEFAULT_WIFI_DEF;
     }
+
 	else if (settings.version != defaults.version)
 	{
 		switch (settings.version)
 		{
-			case 1: settings.internet_time = defaults.internet_time;
+			//case 1: settings.internet_time = defaults.internet_time;
+			//		break;
+			case 2: settings.WIFI = DEFAULT_WIFI_DEF;
 					break;
 		}
 	}

@@ -2,6 +2,7 @@
 
 #include "Tris.h"
 #include "InternetTime.h"
+#include "WiFiUtils.h"
 
 namespace NYG 
 {
@@ -48,8 +49,12 @@ namespace NYG
             } up, down;
         }   timings;
 
-        InternetTime::Data internet_time;
+        InternetTime::Data	internet_time;
+		WiFiDef				WIFI;
 
+		char ____trailer___[256];
+
+		//=============================================================
         static void Load();
         static void Store(const NYG::Settings& temp);
 
