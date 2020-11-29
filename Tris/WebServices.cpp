@@ -93,7 +93,7 @@ void InitializeWebServices()
 	//		Scheduler::AddInSeconds(NULL, [](void* ctx) { MicroController::Restart(); }, NULL, "Shutdown", 10);
 	//	} });
 	
-	AddInternetAccessWiFiURI(server, [](AsyncWebServerRequest& request, const IWiFiDef& def) {
+	AddInternetAccessWiFiURI(server, [](AsyncWebServerRequest& request, const WiFiDef& def) {
 		Settings temp = settings;
 
 		temp.WIFI.Set(def.SSID(), def.PASS(), def.GATEWAY());

@@ -42,7 +42,7 @@ void LedMgr::OnStateChanged(State prev)
     {
         case Manual:        toggler.Start(     led.GetBlue(),       Toggler::OnTotal(500, 60000));      break;
         case HalfManual:    toggler.Start(     led.GetBlue(),       Toggler::OnTotal(200, 15000));      break;
-        case Ready:         toggler.Start(     led.GetGreen(),      Toggler::OnTotal(500, 60000));      break;
+        case Ready:         toggler.Start(     led.GetGreen(),      Toggler::OnTotal(40,  60000));      break;
         case BusyUp:        toggler.StartOnOff(led.GetGreen(),      250);                               break;
         case BusyDown:      toggler.StartOnOff(led.GetRed(),        250);                               break;
         case Error:         toggler.StartOnOff(led.GetRed(),       1000);                               break;

@@ -417,7 +417,10 @@ struct SchedulingTimes
                 Sun::GetLocalRiseSetTimes(sun_rise + SECONDS_PER_DAY, sun_rise, sun_set);
             }
 
-            FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : GetFromMinutes(dst, settings.states.nightly.up);
+			FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : GetFromMinutes(dst, settings.states.nightly.up);
+
+			if (up_time > sun_rise)
+				up_time = sun_rise;
 
             if (up_time < down_time)
             {
@@ -687,27 +690,54 @@ static String get_action_description(TrisPosition p)
     return "?";
 }
 //------------------------------------------------------
-String get_day_action(int idx)
+String get_day_time(int idx, bool log = false)
 {
-    if (settings.states.manual)
-        return "";
+	if (settings.states.manual)
+		return "";
 
-    idx += scheduling_times.day_first_event_idx;
-    if (idx >= scheduling_times.max_idx)
-        return "";
-    return get_action_description(scheduling_times.events[idx].p);
+	idx += scheduling_times.day_first_event_idx;
+
+	if (idx >= scheduling_times.max_idx)
+		return "";
+
+	String retval = get_time(scheduling_times.events[idx].t);
+
+	if(log)
+		LOGGER << ">>> " << idx << "=" << retval << "  ";
+
+	String prev;
+
+	while (idx > scheduling_times.day_first_event_idx)
+	{
+		idx--;
+
+		prev = get_time(scheduling_times.events[idx].t);
+
+		if(log)
+			LOGGER <<  idx << "=" << prev << "  ";
+
+		if (prev == retval)
+		{
+			if (log)
+				LOGGER << "SAME" << NL;
+			return "";
+		}
+	}
+
+	if (log)
+		LOGGER << "DIFFERENT" << NL;
+
+	return retval;
 }
 //------------------------------------------------------
-String get_day_time(int idx)
+String get_day_action(int idx)
 {
-    if (settings.states.manual)
-        return "";
+	if (get_day_time(idx, false).isEmpty())
+		return "";
 
     idx += scheduling_times.day_first_event_idx;
-    if (idx >= scheduling_times.max_idx)
-        return "";
-
-   return get_time(scheduling_times.events[idx].t);
+    
+    return get_action_description(scheduling_times.events[idx].p);
 }
 //------------------------------------------------------
 bool SetActionDisabled(const String& var, String& action_disabled_reason)

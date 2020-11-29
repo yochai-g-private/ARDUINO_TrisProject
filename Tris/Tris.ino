@@ -98,7 +98,8 @@ void setup()
 							   settings.WIFI.GATEWAY());
 	else
 		WiFiUtils::CreateAP(hostname,	// SSID
-							NULL);		// PASS
+							NULL,		// PASS
+							false);		// hidden
 
 	OTA::Initialize("TRIS");
 
