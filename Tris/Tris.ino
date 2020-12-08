@@ -92,16 +92,20 @@ void setup()
 
 	get_internet_time(hostname, RTC_ok, wifi_OK);
 
+#if !UNDER_QA
 	if(wifi_OK)
 		wifi_app.ConnectToWiFi(settings.WIFI.SSID(), 
 							   settings.WIFI.PASS(), 
 							   settings.WIFI.GATEWAY());
 	else
+#endif //!UNDER_QA
 		WiFiUtils::CreateAP(hostname,	// SSID
 							NULL,		// PASS
 							false);		// hidden
 
+#if !UNDER_QA
 	OTA::Initialize("TRIS");
+#endif //!UNDER_QA
 
 	InitializeWebServices();
 

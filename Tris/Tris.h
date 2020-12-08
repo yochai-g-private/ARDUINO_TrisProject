@@ -2,7 +2,9 @@
 
 #include "NYG.h"
 
-#define VERSION	4
+#define VERSION			4
+
+#define UNDER_QA        0
 
 class AsyncWebServer;
 

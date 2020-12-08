@@ -368,192 +368,97 @@ static void set_motor_state(void* ctx)
 //------------------------------------------------------
 struct SchedulingTimes
 {
-    FixTime now;
-    DstTime dst;
+    FixTime now_fix;
+    DstTime now_dst;
     FixTime sun_rise;
     FixTime sun_set;
 
-    Event events[8];
-    int day_first_event_idx;
-    int max_idx;
+    Event	events[8];
+//  int		day_first_event_idx;
+    int		max_event_idx;
 
     TrisPosition current_position;
     Event*       next_event;
 
-    void Schedule()
-    {
-        memset(events, 0, sizeof(events));
+	void Schedule()
+	{
+		memset(events, 0, sizeof(events));
 
-        now = FixTime::Now();
-        dst = DstTime(now);
+		now_fix = FixTime::Now();
+		now_dst = DstTime(now_fix);
 
-        Sun::GetTodayLocalRiseSetTimes(sun_rise, sun_set);
+		Sun::GetLocalRiseSetTimes(now_fix + (SECONDS_PER_DAY * (now_fix.GetDays() != now_dst.GetDays())), sun_rise, sun_set);
 
-        if (settings.states.nightly.mode != NM_DISABLED)
-        {
-            LOGGER << "NIGHTLY is enabled" << NL;
-            FixTime down_time = GetFromMinutes(dst, settings.states.nightly.down);
+		int idx = 0;
 
-            if (down_time <= now)
-            {
-                // passee
-                events[0].t = down_time;
-                events[4].t = down_time + SECONDS_PER_DAY;
-            }
-            else
-            {
-                // in future
-                events[0].t = down_time - SECONDS_PER_DAY;
-                events[4].t = down_time;
-            }
+#define SetEvent(_t, _p, _d)				events[idx].t = _t;	events[idx].p = _p;	events[idx].d = _d; idx++
 
-            events[0].p = events[4].p = (settings.states.nightly.mode == NM_AIR) ? TP_Air : TP_Btm;
+		if (settings.states.nightly.mode != NM_DISABLED)
+		{
+			LOGGER << "NIGHTLY is enabled" << NL;
 
-            events[0].d = events[4].d = (settings.states.nightly.mode == NM_AIR) ? "Nightly AIR" : "Nightly BOTTOM";
-
-            if (sun_rise < down_time)
-            {
-                // sun_rise of yesterday
-                Sun::GetLocalRiseSetTimes(sun_rise + SECONDS_PER_DAY, sun_rise, sun_set);
-            }
-
-			FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : GetFromMinutes(dst, settings.states.nightly.up);
+			FixTime up_time = (Settings::SUNRISE == settings.states.nightly.up) ? sun_rise : GetFromMinutes(now_dst, settings.states.nightly.up);
 
 			if (up_time > sun_rise)
 				up_time = sun_rise;
 
-            if (up_time < down_time)
-            {
-                // passee
-                events[1].t = up_time + SECONDS_PER_DAY;
-                events[5].t = up_time + (SECONDS_PER_DAY * 2);
-            }
-            else
-            {
-                // in future
-                events[1].t = up_time;
-                events[5].t = up_time + SECONDS_PER_DAY;
-            }
+			SetEvent(up_time, TP_Top, "Nightly TOP");
 
-            events[1].p = events[5].p = TP_Top;
+			current_position = TP_Btm;
+		}
+		else
+		{
+			current_position = TP_Top;
+		}
 
-            events[1].d = events[5].d = "Nightly TOP";
-        }
+		if (settings.states.sun_protect.on)
+		{
+			LOGGER << "SUN PROTECT is enabled" << NL;
 
-        //TRACE("settings.states.sun_protect.on");
-        if (settings.states.sun_protect.on)
-        {
-            LOGGER << "SUN PROTECT is enabled" << NL;
-            LOGGER << "Sunrise at " << DstTime(sun_rise).ToText() << NL;
+			FixTime down_time = sun_rise + (SECONDS_PER_MINUTE * (int)settings.states.sun_protect.minutes_after_sun_rise);
 
-            FixTime down_time = sun_rise + (SECONDS_PER_MINUTE * (int)settings.states.sun_protect.minutes_after_sun_rise);
+			SetEvent(down_time, TP_Sun, "Sun PROTECTED");
 
-            if (down_time < events[0].t)
-                down_time += SECONDS_PER_DAY;
+			FixTime up_time = down_time + +(SECONDS_PER_MINUTE * (int)settings.states.sun_protect.duration_minutes);
 
-            events[2].t = down_time;
-            events[6].t = down_time + SECONDS_PER_DAY;
+			SetEvent(up_time, TP_Top, "Sun UNPROTECTED");
+		}
 
-            events[2].p = events[6].p = TP_Sun;
-            events[2].d = events[6].d = "Sun PROTECTED";
+		if (settings.states.nightly.mode != NM_DISABLED)
+		{
+			FixTime down_time = GetFromMinutes(events[0].t, settings.states.nightly.down);
+			SetEvent(down_time, TP_Btm, "Nightly DOWN");
+		}
 
-            FixTime up_time = down_time + +(SECONDS_PER_MINUTE * (int)settings.states.sun_protect.duration_minutes);
+		SetEvent(events[0].t + SECONDS_PER_DAY, events[0].p, NULL);
 
-            events[3].t = up_time;
-            events[7].t = up_time + SECONDS_PER_DAY;
+		max_event_idx = idx;
 
-            events[3].p = events[7].p = TP_Top;
-            events[3].d = events[7].d = "Sun UNPROTECTED";
-        }
+		next_event = &events[0];
 
-        max_idx = countof(events);
+		for (idx = 0; idx < max_event_idx; idx++)
+		{
+			if (events[idx].t > now_fix)
+			{
+				next_event = &events[idx];
+				break;
+			}
 
-        //ListEvents("Before removing unset events");
+			current_position = events[idx].p;
+		}
 
-        // remove unset events
-        int idx;
-        for (idx = 0; idx < max_idx; idx++)
-        {
-            if (events[idx].p == TP_UNKNOWN)
-            {
-                max_idx--;
+		max_event_idx--;
 
-                if (idx < max_idx)
-                {
-                    int shift_size = sizeof(*events) * (max_idx - idx);
-                    memcpy(events + idx, events + idx + 1, shift_size);
-                }
+		LOGGER << "Current position: " << GetPositionText(current_position) << NL;
+		LOGGER << "Next scheduled  : " << GetPositionText(next_event->p) << " at " << DstTime(next_event->t).ToText() << NL;
+	}
 
-                idx--;
-            }
-        }
-
-        //ListEvents("Before removing overlapped events");
-
-        // remove overlapped events
-        for (idx = 0; idx < max_idx - 1; idx++)
-        {
-            if (events[idx].t > events[idx + 1].t)
-            {
-                max_idx--;
-                int shift_size = sizeof(*events) * (max_idx - idx);
-                memcpy(events + idx, events + idx + 1, shift_size);
-                idx--;
-            }
-        }
-
-        //ListEvents("After removing overlapped events");
-
-        current_position = TP_Top;
-        next_event       = NULL;
-
-        for (idx = 0; idx < max_idx; idx++)
-        {
-            if (events[idx].t > now)
-            {
-                next_event = &events[idx];
-                break;
-            }
-
-            current_position = events[idx].p;
-        }
-
-        LOGGER << "Current position: " << GetPositionText(current_position) << NL;
-        if (next_event)
-        {
-            LOGGER << "Next scheduled  : " << GetPositionText(next_event->p) << " at " << DstTime(next_event->t).ToText() << NL;
-        }
-        else
-        {
-            if (max_idx)
-                ErrorMgr::Report("Bug in SchedulingTimes::Schedule()");
-        }
-
-        // Set the first event of the day
-        Times tm  = dst;
-        day_t day = tm.D;
-
-        day_first_event_idx = 778;
-
-        for (idx = 0; idx < max_idx; idx++)
-        {
-            DstTime event_dst = events[idx].t;
-            Times   event_tm  = event_dst;
-            day_t   event_day = event_tm.D;
-
-            if (day == event_day)
-            {
-                day_first_event_idx = idx;
-                break;
-            }
-        }
-    }
 
     void ListEvents(const char* title)
     {
-        LOGGER << title << " : " << max_idx << " events scheduled:";
+        LOGGER << title << " : " << max_event_idx << " events scheduled:";
 
-        for (int idx = 0; idx < max_idx; idx++)
+        for (int idx = 0; idx < max_event_idx; idx++)
         {
             if (events[idx].p)
                 LOGGER << "\n>       " << DstTime(events[idx].t).ToText() << " : " << GetPositionText(events[idx].p) << " = " << events[idx].d;
@@ -645,8 +550,8 @@ static String get_state_text()
 //------------------------------------------------------
 static String get_time(const FixTime& t)
 {
-    DstTime dst = t;
-    TimeText tt = dst.ToText();
+    DstTime now_dst = t;
+    TimeText tt = now_dst.ToText();
     tt.buffer[16] = 0;
     return tt.buffer + 11;
 }
@@ -669,7 +574,7 @@ static String get_position_description(TrisPosition p)
     switch (p)
     {
         case TP_Top: return "פתוח";                         
-        case TP_Sun: return "פתוח מוגן שמש)";
+        case TP_Sun: return "פתוח מוגן שמש";
         case TP_Air: return "סגור עם מרווח איוורור";       
         case TP_Btm: return "סגור עד למטה";                
     }
@@ -695,9 +600,7 @@ String get_day_time(int idx, bool log = false)
 	if (settings.states.manual)
 		return "";
 
-	idx += scheduling_times.day_first_event_idx;
-
-	if (idx >= scheduling_times.max_idx)
+	if (idx >= scheduling_times.max_event_idx)
 		return "";
 
 	String retval = get_time(scheduling_times.events[idx].t);
@@ -707,7 +610,7 @@ String get_day_time(int idx, bool log = false)
 
 	String prev;
 
-	while (idx > scheduling_times.day_first_event_idx)
+	while (idx > 0)
 	{
 		idx--;
 
@@ -735,8 +638,6 @@ String get_day_action(int idx)
 	if (get_day_time(idx, false).isEmpty())
 		return "";
 
-    idx += scheduling_times.day_first_event_idx;
-    
     return get_action_description(scheduling_times.events[idx].p);
 }
 //------------------------------------------------------
