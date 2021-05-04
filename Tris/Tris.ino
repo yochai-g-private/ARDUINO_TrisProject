@@ -31,7 +31,7 @@ static Threshold                                    threshold(analog_button, 500
 static StableDigitalInput<5000, 10, millis>         button(threshold);
 static DigitalObserver                              button_observer(button);
 
-#if 0
+#if 1
 #define UNDER_DEVELOPMENT       true
 #else
 #define UNDER_DEVELOPMENT       false
@@ -72,7 +72,9 @@ void setup()
 	//LOGGER << "offset of ear = " << (uint32_t)offsetof(TestAlignment, e.ar)	<< NL;
 	//LOGGER << "offset of e.b = " << (uint32_t)offsetof(TestAlignment, e.b) << NL;
 
-    Settings::Load();
+	//LOGGER << "DST #0 = " << DstTime::GetDST() << NL;
+	Settings::Load();
+	//LOGGER << "DST #1 = " << DstTime::GetDST() << NL;
 
     Settings::WriteApplicationInfoToLog();
 
@@ -90,7 +92,9 @@ void setup()
 	bool wifi_OK;
 	const char* hostname = "TRIS";
 
+	//LOGGER << "DST #2 = " << DstTime::GetDST() << NL;
 	get_internet_time(hostname, RTC_ok, wifi_OK);
+	//LOGGER << "DST #3 = " << DstTime::GetDST() << NL;
 
 #if !UNDER_QA
 	if(wifi_OK)

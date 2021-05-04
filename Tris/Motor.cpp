@@ -404,7 +404,7 @@ struct SchedulingTimes
 
 			SetEvent(up_time, TP_Top, "Nightly TOP");
 
-			current_position = TP_Btm;
+			current_position = (NM_AIR == settings.states.nightly.mode) ? TP_Air : TP_Btm;
 		}
 		else
 		{
@@ -427,7 +427,14 @@ struct SchedulingTimes
 		if (settings.states.nightly.mode != NM_DISABLED)
 		{
 			FixTime down_time = GetFromMinutes(events[0].t, settings.states.nightly.down);
-			SetEvent(down_time, TP_Btm, "Nightly DOWN");
+			if (NM_AIR == settings.states.nightly.mode)
+			{
+				SetEvent(down_time, TP_Air, "Nightly AIR");
+			}
+			else
+			{
+				SetEvent(down_time, TP_Btm, "Nightly DOWN");
+			}
 		}
 
 		SetEvent(events[0].t + SECONDS_PER_DAY, events[0].p, NULL);
